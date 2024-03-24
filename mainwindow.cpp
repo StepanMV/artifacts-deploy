@@ -13,10 +13,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     //ApiHandler::setURL("https://vgit.mirea.ru/api/v4");
-    //SSHConnection connection = SSHConnection("62.84.103.68", 22, "root", "/home/twinkboy42/id_ed25519", "");
+    //SSHConnection connection = SSHConnection("", 22, "root", "/home/twinkboy42/id_ed25519", "");
     //qDebug() << connection.sendCommand("ls -d /*");
     //qDebug() << connection.sendCommand("ls");
-    //qDebug() << ApiHandler::getRepositories({"glpat-fERYjqiti4yf-4Hpcau5"});
+    //qDebug() << ApiHandler::getRepositories({""});
     //qDebug() << ApiHandler::getBranches(606);
     //qDebug() << ApiHandler::getPipelines(606, "main");
     //qDebug() << ApiHandler::getJobs(606, 6324);
