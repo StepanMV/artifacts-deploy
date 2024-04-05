@@ -28,6 +28,12 @@ public:
     AuthenticationError();
 };
 
+class VerificationError : public std::runtime_error
+{
+public:
+    VerificationError();
+};
+
 class SSHConnection
 {
 public:
@@ -41,6 +47,9 @@ public:
 
 private:
     SSHConnection(const std::string& ip, size_t port, const std::string& user);
+    int verifyHost(ssh_session session);
+
+    ssh_session session;
 
     std::string ip;
     size_t port;

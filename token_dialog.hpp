@@ -2,6 +2,7 @@
 #define TOKEN_DIALOG_HPP
 
 #include <QDialog>
+#include "api_handler.hpp"
 #include "cooler_dialog.hpp"
 
 namespace Ui {
@@ -22,6 +23,8 @@ public:
     void setFields(const QJsonObject& data) override;
 
 private:
+    ApiHandler api;
+    bool verified = false;
     Ui::TokenDialog *ui;
 };
 

@@ -1,36 +1,36 @@
 #ifndef COOLER_LIST_HPP
 #define COOLER_LIST_HPP
 
-#include <QPushButton>
-#include <QList>
-#include <QListView>
+#include "cooler_dialog.hpp"
 #include <QDialog>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <QMainWindow>
+#include <QList>
+#include <QListView>
 #include <QListWidget>
-#include "cooler_dialog.hpp"
+#include <QMainWindow>
+#include <QPushButton>
 
-
-class CoolerList : public QObject
-{
+class CoolerList : public QObject {
+  Q_OBJECT
 public:
-    CoolerList(const QString& name, const QList<QPushButton*>& buttons, QListWidget* listView, CoolerDialog* dialog);
+  CoolerList(const QString &name, const QList<QPushButton *> &buttons, QListWidget *listView,
+             CoolerDialog *dialog, QObject *parent = nullptr);
 
-    CoolerDialog * const getDialog();
+  CoolerDialog *const getDialog();
 
 private slots:
-    void onDialogAccept();
-    void onAddClick();
-    void onRemoveClick();
-    void onDuplicateClick();
-    void onEditClick();
+  void onDialogAccept();
+  void onAddClick();
+  void onRemoveClick();
+  void onDuplicateClick();
+  void onEditClick();
 
 private:
-    QString name;
-    QListWidget* list;
-    CoolerDialog* dialog;
-    int editing = -1;
+  QString name;
+  QListWidget *list;
+  CoolerDialog *dialog;
+  int editing = -1;
 };
 
 #endif // COOLER_LIST_HPP

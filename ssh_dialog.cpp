@@ -94,6 +94,11 @@ bool SshDialog::verifyData()
         ui->labelUser->setStyleSheet("color: red;");
         return false;
     }
+    catch (const VerificationError& e)
+    {
+        ui->labelIp->setStyleSheet("color: red;");
+        return false;
+    }
     catch (const AuthenticationError& e)
     {
         ui->labelKeyPath->setStyleSheet("color: red;");

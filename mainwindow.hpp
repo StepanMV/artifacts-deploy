@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QNetworkReply>
+#include "api_handler.hpp"
 #include "cooler_list.hpp"
 #include "download_manager.hpp"
 #include "deploy_object.hpp"
@@ -30,7 +31,8 @@ private slots:
     void startDownload();
 
 private:
-    QNetworkAccessManager qnam;
+    ApiHandler api;
+    //QNetworkAccessManager qnam;
     std::vector<DeployObject*> deployObjets;
     Ui::MainWindow* ui;
     CoolerList* tokenList;
