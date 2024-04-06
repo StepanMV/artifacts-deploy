@@ -10,6 +10,12 @@ SshDialog::SshDialog(QWidget *parent)
 {
     ui->setupUi(this);
     connect(ui->buttonKeyDir, &QPushButton::clicked, this, &SshDialog::selectKeyDir);
+  connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &SshDialog::accept);
+  connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &SshDialog::reject);
+  connect(ui->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button)
+          {
+    if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ApplyRole)
+      this->apply(); });
 }
 
 SshDialog::~SshDialog()

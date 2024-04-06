@@ -21,6 +21,7 @@ public:
 
 private slots:
   void onDialogAccept();
+  void onDialogApply();
   void onAddClick();
   void onRemoveClick();
   void onDuplicateClick();

@@ -16,6 +16,7 @@ CoolerList::CoolerList(const QString &name, const QList<QPushButton *> &buttons,
           &CoolerList::onDuplicateClick);
   connect(buttons.at(3), &QPushButton::clicked, this, &CoolerList::onEditClick);
   connect(dialog, &CoolerDialog::accepted, this, &CoolerList::onDialogAccept);
+  connect(dialog, &CoolerDialog::applied, this, &CoolerList::onDialogApply);
 }
 
 CoolerDialog *const CoolerList::getDialog() { return this->dialog; }
@@ -33,6 +34,13 @@ void CoolerList::onDialogAccept() {
     list->item(editing)->setText(data.value("display").toString());
     editing = -1;
   }
+}
+
+void CoolerList::onDialogApply() {
+  QJsonObject data = dialog->getData();
+  if (data.value("display").toString().isEmpty()) return;
+  DataManager::appendCoolerList(name, data);
+  list->addItem(data.value("display").toString());
 }
 
 void CoolerList::onAddClick() { dialog->show(); }

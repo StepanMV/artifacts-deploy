@@ -4,11 +4,18 @@
 #include <QDebug>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QAbstractButton>
 
 TokenDialog::TokenDialog(QWidget *parent)
     : CoolerDialog(parent), ui(new Ui::TokenDialog), api(this)
 {
   ui->setupUi(this);
+  connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &TokenDialog::accept);
+  connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &TokenDialog::reject);
+  connect(ui->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button)
+          {
+    if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ApplyRole)
+      this->apply(); });
 }
 
 TokenDialog::~TokenDialog() { delete ui; }
@@ -26,15 +33,17 @@ bool TokenDialog::verifyData()
 {
   if (verified)
     return true;
-  auto future = api.addToken(ui->lineEditToken->text());
-  future
-      .then([this, label = ui->labelToken]()
-            {
-        label->setStyleSheet("color: green;");
-        this->verified = true;
-        this->accept(); })
-      .onFailed([label = ui->labelToken](QNetworkReply::NetworkError e)
-                { label->setStyleSheet("color: red;"); });
+  ApiReply *reply = api.addToken(ui->lineEditToken->text());
+  connect(reply, &ApiReply::dataReady, reply, [this, reply, label = ui->labelToken](const QByteArray &data)
+          {
+    label->setStyleSheet("color: green;");
+    this->verified = true;
+    this->accept();
+    reply->deleteLater(); });
+  connect(reply, &ApiReply::errorOccurred, reply, [reply, label = ui->labelToken](QNetworkReply::NetworkError e)
+          {
+    label->setStyleSheet("color: red;");
+    reply->deleteLater(); });
   return false;
 }
 

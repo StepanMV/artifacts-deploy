@@ -2,6 +2,7 @@
 #define COOLERDIALOG_HPP
 
 #include <QDialog>
+#include <QDialogButtonBox>
 
 class CoolerDialog : public QDialog
 {
@@ -17,6 +18,10 @@ public:
 protected slots:
     void accept();
     void reject();
+    void apply();
+
+signals:
+    void applied();
 
 };
 

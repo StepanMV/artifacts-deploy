@@ -14,143 +14,161 @@ QMap<QString, QString> ApiHandler::idToToken;
 QMap<QString, QString> ApiHandler::idToName;
 QHash<QString, QByteArray> ApiHandler::cache;
 
-QFuture<void> ApiHandler::addToken(const QString &token)
+ApiReply *ApiHandler::addToken(const QString &token)
 {
   return ApiHandler::addTokenPaged(token, 0);
 }
 
-QFuture<void> ApiHandler::addTokenPaged(const QString &token, size_t i)
+ApiReply *ApiHandler::addTokenPaged(const QString &token, size_t i)
 {
-  auto future =
-      makeRequest(apiURL +
-                      "/projects?simple=true&min_access_level=20&order_by="
-                      "last_activity_at&per_page=100&page=" +
-                      QString::number(i),
-                  token);
-  return future.then([this, token, i](QByteArray data)
-                     {
+  ApiReply *reply = makeRequest(apiURL + "/projects?simple=true&min_access_level=20" +
+                                    "&order_by=last_activity_at&per_page=100&page=" +
+                                    QString::number(i),
+                                token);
+  connect(reply, &ApiReply::dataReady, reply, [this, reply, token, i](const QByteArray &data)
+          {
     QJsonArray arr = QJsonDocument::fromJson(data).array();
     if (arr.isEmpty())
+    {
+      reply->deleteLater();
       return;
+    }
     for (auto it = arr.constBegin(); it != arr.constEnd(); ++it) {
       QJsonObject val = it->toObject();
-      QString id = QString::number(val.value("id").toInteger());
+      QString id = QString::number((size_t) val.value("id").toDouble());
       QString name = val.value("name").toString();
       idToToken[id] = token;
       idToName[id] = name;
     }
-    addTokenPaged(token, i + 1); });
+    addTokenPaged(token, i + 1);
+    if(i > 0) reply->deleteLater(); });
+  return reply;
 }
 
-QFuture<QList<QString>>
-ApiHandler::getBranches(const QString &projectID)
+ApiReply *ApiHandler::getBranches(const QString &projectID)
 {
 
   QString url = apiURL + "/projects/" + projectID + "/repository/branches";
-  auto future = makeRequest(url, idToToken[projectID]);
-  return future.then([](QByteArray data)
-                     {
+  ApiReply *reply = makeRequest(url, idToToken[projectID]);
+  qDebug() << "CONNECTING\n";
+  connect(reply, &ApiReply::dataReady, reply, [this, projectID, reply](const QByteArray &data)
+          {
     QList<QString> branchNames;
     QJsonArray array = QJsonDocument::fromJson(data).array();
     for (const QJsonValue &val : array) {
       QString name = val["name"].toString();
       branchNames.append(name);
     }
-    return branchNames; });
+    emit reply->branchesReady(branchNames); });
+  return reply;
 }
 
-QFuture<QMap<QString, QString>>
-ApiHandler::getPipelines(const QString &projectID, const QString &branchName)
+ApiReply *ApiHandler::getPipelines(const QString &projectID, const QString &branchName)
 {
   QString pipelineUrl = apiURL + "/projects/" + projectID +
                         "/pipelines?ref=" + branchName + "&status=success";
   QString commitsUrl = apiURL + "/projects/" + projectID +
                        "/repository/commits/?ref_name=" + branchName;
 
-  auto commitsFuture = makeRequest(commitsUrl, idToToken[projectID])
-    .then(QtFuture::Launch::Async, [](QByteArray data){
-      QMap<QString, QString> commitHashToDescription;
-      QJsonArray commitsArray = QJsonDocument::fromJson(data).array();
+  std::map<std::string, std::string> *pipelineIdToSha = new std::map<std::string, std::string>();
+  std::map<std::string, std::string> *commitHashToDescription = new std::map<std::string, std::string>();
 
-      for (const QJsonValue &val : commitsArray) {
-        QString hash = val["id"].toString();
-        commitHashToDescription[hash] = val["title"].toString();
-      }
-      return commitHashToDescription;
-    });
+  ApiReply *shaReply = makeRequest(pipelineUrl, idToToken[projectID]);
+  ApiReply *commitsReply = makeRequest(commitsUrl, idToToken[projectID]);
+  qDebug("Constructed requests");
 
-  return makeRequest(pipelineUrl, idToToken[projectID])
-    .then(QtFuture::Launch::Async, [commitsFuture](QByteArray data) {
-      QMap<QString, QString> pipelineIdToCommit;
-      QJsonArray pipelineArray = QJsonDocument::fromJson(data).array();
+  connect(shaReply, &ApiReply::dataReady, shaReply, [this, pipelineIdToSha, shaReply](const QByteArray &data)
+          {
+    QJsonArray pipelineArray = QJsonDocument::fromJson(data).array();
+    for (const QJsonValue &val : pipelineArray) {
+      std::string id = QString::number((size_t) val["id"].toDouble()).toStdString();
+      pipelineIdToSha->emplace(id, val["sha"].toString().toStdString());
+    }
+    qDebug() << "Inflated SHA to size: " + QString::number(pipelineIdToSha->size());
+    emit shaReply->pipelinesCheck(); });
 
-      for (const QJsonValue &val : pipelineArray) {
-        QString id = QString::number(val["id"].toInteger());
-        pipelineIdToCommit[id] = val["sha"].toString();
-      }
-      QMap<QString, QString> commitHashToDescription = commitsFuture.result();
-      for (auto it = pipelineIdToCommit.begin(); it != pipelineIdToCommit.end();
-          ++it) {
-        pipelineIdToCommit[it.key()] =
-            "#" + it.key() + " " + commitHashToDescription[it.value()];
-      }
-      return pipelineIdToCommit;
-    }).then(this, [](QMap<QString, QString> pipelineIdToCommit) {
-      return pipelineIdToCommit;
-    });
+  connect(commitsReply, &ApiReply::dataReady, shaReply, [this, commitHashToDescription, commitsReply, shaReply](const QByteArray &data)
+          {
+    QJsonArray commitsArray = QJsonDocument::fromJson(data).array();
+    for (const QJsonValue &val : commitsArray) {
+      std::string hash = val["id"].toString().toStdString();
+      commitHashToDescription->emplace(hash, val["title"].toString().toStdString());
+    }
+    qDebug() << "Inflated commits to size: " + QString::number(commitHashToDescription->size());
+    emit shaReply->pipelinesCheck(); });
+
+  connect(commitsReply, &ApiReply::errorOccurred, shaReply, [this, commitsReply, shaReply](QNetworkReply::NetworkError e)
+          { emit shaReply->errorOccurred(e); });
+
+  connect(shaReply, &ApiReply::pipelinesCheck, shaReply, [this, pipelineIdToSha, commitHashToDescription, shaReply, commitsReply]()
+          { 
+    if (!commitsReply->qReply->isFinished() || !shaReply->qReply->isFinished()) return;
+    QMap<QString, QString> pipelineIdToCommit;
+    for (auto it = pipelineIdToSha->begin(); it != pipelineIdToSha->end(); ++it) {
+      QString key = QString::fromStdString(it->first);
+      QString value = QString::fromStdString(commitHashToDescription->at(it->second));
+      pipelineIdToCommit.insert(key, "#" + key + " " + value);
+    }
+    emit shaReply->pipelinesReady(pipelineIdToCommit);
+    delete commitHashToDescription;
+    delete pipelineIdToSha;
+    commitsReply->deleteLater(); });
+  return shaReply;
 }
 
-QFuture<QMap<QString, QString>> ApiHandler::getJobs(const QString &projectID,
-                                                    const QString &pipelineID)
+ApiReply *ApiHandler::getJobs(const QString &projectID, const QString &pipelineID)
 {
-  QString url = apiURL + "/projects/" + projectID + "/pipelines/" + pipelineID +
-                "/jobs?scope[]=success";
+  QString url = apiURL + "/projects/" + projectID + "/pipelines/" + pipelineID + "/jobs?scope[]=success";
 
-  auto future = makeRequest(url, idToToken[projectID]);
-  return future.then([](QByteArray data)
-                     {
+  ApiReply *reply = makeRequest(url, idToToken[projectID]);
+  connect(reply, &ApiReply::dataReady, reply, [this, projectID, reply](const QByteArray &data)
+          {
     QMap<QString, QString> jobIdToName;
     QJsonArray array = QJsonDocument::fromJson(data).array();
-
     for (auto it = array.begin(); it != array.end(); ++it) {
       QJsonObject val = it->toObject();
-      QString id = QString::number(val.value("id").toInteger());
+      QString id = QString::number((size_t) val.value("id").toDouble());
       jobIdToName[id] = val.value("name").toString();
     }
-    return jobIdToName; });
+    emit reply->jobsReady(jobIdToName); });
+  return reply;
 }
 
 ApiHandler::ApiHandler(QObject *parent)
-  :QObject{parent} {}
+    : QObject{parent} {}
 
-QFuture<bool> ApiHandler::checkURL(const QString &url)
+ApiReply *ApiHandler::checkURL(const QString &url)
 {
-  auto future = makeRequest(url + "/projects?per_page=1");
-  return future.then([](QByteArray data) { return true; });
+  ApiReply *reply = makeRequest(url + "/projects?per_page=1");
+  return reply;
 }
 
-QFuture<QByteArray> ApiHandler::makeRequest(const QString &url,
-                                            const QString &token)
+ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
 {
-  QString authUrl =
-      url + (url.contains('?') ? "&" : "?") + "private_token=" + token;
-  // if(cache.contains(authUrl)) return cache[authUrl];
+  QString authUrl = url + (url.contains('?') ? "&" : "?") + "private_token=" + token;
   QNetworkRequest request = QNetworkRequest(QUrl(authUrl));
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 
-  QNetworkReply *reply = qnam.get(request);
-  // emits signal with all data in QByteArray... and reply..?
-  // ... so it should return reply?
-  // so other methods connect to that signal and perform their lambdas if signal.reply == returned reply
-  // and then... other... signals?
-  return QtFuture::connect(reply, &QNetworkReply::finished)
-    .then([reply, authUrl]() {
-      if (reply->error() != QNetworkReply::NoError)
-        throw reply->error();
-      QByteArray data = reply->readAll();
-        cache[authUrl] = data;
-        reply->deleteLater();
-        return data; });
+  ApiReply *reply = new ApiReply(qnam.get(request));
+  if (cache.contains(authUrl))
+  {
+    QTimer::singleShot(100, reply, [this, reply, authUrl]() {
+      reply->qReply->abort();
+      emit reply->dataReady(cache[authUrl]);
+    });
+    return reply;
+  }
+  connect(reply->qReply, &QNetworkReply::finished, reply, [this, reply, authUrl]()
+          {
+    if (reply->qReply->error() != QNetworkReply::NoError)
+    {
+      return;
+    }
+    QByteArray data = reply->qReply->readAll();
+    qDebug() << "Constructor: " << reply->qReply->url() << "\n"; 
+    cache[authUrl] = data;
+    emit reply->dataReady(data); });
+  return reply;
 }
 
 QString ApiHandler::getArtifactsUrl(const QString &projId,

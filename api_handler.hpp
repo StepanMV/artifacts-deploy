@@ -8,28 +8,29 @@
 #include <cstddef>
 #include <QtNetwork/QNetworkReply>
 #include <QFuture>
+#include "api_reply.hpp"
 
-class ApiHandler : QObject
+class ApiHandler : public QObject
 {
     Q_OBJECT
 public:
     explicit ApiHandler(QObject *parent = nullptr);
-    QFuture<bool> checkURL(const QString& url);
-    QFuture<void> addToken(const QString& token);
-    QFuture<QList<QString>> getBranches(const QString& projectID);
-    QFuture<QMap<QString, QString>> getPipelines(const QString& projectID, const QString& branchName);
-    QFuture<QMap<QString, QString>> getJobs(const QString& projectID, const QString& pipelineID);
+    ApiReply *checkURL(const QString &url);
+    ApiReply *addToken(const QString &token);
+    ApiReply *getBranches(const QString &projectID);
+    ApiReply *getPipelines(const QString &projectID, const QString &branchName);
+    ApiReply *getJobs(const QString &projectID, const QString &pipelineID);
 
-    static void setURL(const QString& url);
-    static const QString& getURL();
-    static QString getProjectName(const QString& token);
+    static void setURL(const QString &url);
+    static const QString &getURL();
+    static QString getProjectName(const QString &token);
     static QMap<QString, QString> getProjects();
 
-    QString getArtifactsUrl(const QString& projId, const QString& jobId);
+    QString getArtifactsUrl(const QString &projId, const QString &jobId);
 
 private:
-    QFuture<QByteArray> makeRequest(const QString& url, const QString& token = "");
-    QFuture<void> addTokenPaged(const QString& token, size_t i);
+    ApiReply *makeRequest(const QString &url, const QString &token = "");
+    ApiReply *addTokenPaged(const QString &token, size_t i);
 
     QNetworkAccessManager qnam;
     static QString apiURL;

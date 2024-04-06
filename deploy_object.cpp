@@ -63,8 +63,8 @@ void DeployObject::onNetProgress(qint64 read, qint64 total)
 {
     this->total = total;
     this->progress = read;
-    QDataStream out(file);
-    out << reply->readAll();
+//    QDataStream out(file);
+//    out << reply->readAll();
 
 }
 

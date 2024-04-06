@@ -12,6 +12,12 @@ DeployDialog::DeployDialog(QWidget *parent)
     : CoolerDialog(parent), ui(new Ui::DeployDialog), api(this)
 {
   ui->setupUi(this);
+  connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &DeployDialog::accept);
+  connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &DeployDialog::reject);
+  connect(ui->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button)
+          {
+    if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ApplyRole)
+      this->apply(); });
   projectCCB = new CoolerComboBox(ui->labelProject, ui->comboBoxProject, this);
   branchCCB = new CoolerComboBox(ui->labelBranch, ui->comboBoxBranch, this);
   pipelineCCB = new CoolerComboBox(ui->labelPipeline, ui->comboBoxPipeline, this);
@@ -51,8 +57,6 @@ void DeployDialog::localhostSetEnabled(bool enabled)
 {
   ui->comboBoxDirectory->setEnabled(!enabled);
   ui->checkBox->setEnabled(!enabled);
-  ui->radioButtonCurl->setEnabled(!enabled);
-  ui->radioButtonSftp->setEnabled(!enabled);
   ui->buttonSelectDir->setEnabled(enabled);
 }
 
@@ -61,71 +65,84 @@ void DeployDialog::init()
   // doesn't trigger shouldUpdate()
   projectCCB->updateItems(ApiHandler::getProjects(), false);
   machineCCB->updateItems(DataManager::getList("ssh", "name") +
-                          QList<QString>({"localhost"}), false);
-  //directoryCCB->updateItems(QList<QString>({"/"}), false);
+                              QList<QString>({"localhost"}),
+                          false);
+  // directoryCCB->updateItems(QList<QString>({"/"}), false);
 }
 
 void DeployDialog::projectSelected(const QString &newText)
 {
   comboSetEnabled(false);
-  auto future = api.getBranches(projectCCB->getSelectedItemId());
-  future.then([this](QList<QString> branches) {
-    comboSetEnabled(true);
-    pipelineCCB->clearItems();
-    jobCCB->clearItems();
-    branchCCB->updateItems(branches); // triggers shouldUpdate()
-  }).onFailed([this](QNetworkReply::NetworkError e) {
+  branchCCB->clearItems();
+  pipelineCCB->clearItems();
+  jobCCB->clearItems();
+  ApiReply *reply = api.getBranches(projectCCB->getSelectedItemId());
+  connect(reply, &ApiReply::branchesReady, reply, [this, reply](const QList<QString> &branches)
+          {
+            comboSetEnabled(true);
+            branchCCB->updateItems(branches); // triggers shouldUpdate()
+            reply->deleteLater();
+          });
+  connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
+          {
     projectCCB->onError();
     comboSetEnabled(true);
+    reply->deleteLater();
   });
 }
 
 void DeployDialog::branchSelected(const QString &newText)
 {
   comboSetEnabled(false);
-  auto future = api.getPipelines(projectCCB->getSelectedItemId(),
-                                 branchCCB->getSelectedItem());
-  future.then([this](QMap<QString, QString> pipelines) {
+  pipelineCCB->clearItems();
+  jobCCB->clearItems();
+  ApiReply *reply = api.getPipelines(projectCCB->getSelectedItemId(), branchCCB->getSelectedItem());
+  connect(reply, &ApiReply::pipelinesReady, reply, [this, reply](const QMap<QString, QString> &pipelines)
+          {
+            comboSetEnabled(true);
+            pipelineCCB->updateItems(pipelines); // triggers shouldUpdate()
+            reply->deleteLater();
+          });
+  connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
+          {
+    branchCCB->onError();
     comboSetEnabled(true);
-    jobCCB->clearItems();
-    pipelineCCB->updateItems(pipelines); // triggers shouldUpdate()
-  }).onFailed([this](QNetworkReply::NetworkError e) {
-      branchCCB->onError();
-      comboSetEnabled(true);
+    reply->deleteLater();
   });
 }
 
 void DeployDialog::pipelineSelected(const QString &newText)
 {
   comboSetEnabled(false);
-  auto future = api.getJobs(projectCCB->getSelectedItemId(),
-                            pipelineCCB->getSelectedItemId());
-  future.then([this](QMap<QString, QString> jobs) {
-    comboSetEnabled(true);
-    jobCCB->updateItems(jobs); // triggers shouldUpdate()
-  }).onFailed([this](QNetworkReply::NetworkError e) {
+  jobCCB->clearItems();
+  ApiReply *reply = api.getJobs(projectCCB->getSelectedItemId(), pipelineCCB->getSelectedItemId());
+  connect(reply, &ApiReply::jobsReady, reply, [this, reply](const QMap<QString, QString> &jobs)
+          {
+            comboSetEnabled(true);
+            jobCCB->updateItems(jobs); // triggers shouldUpdate()
+            reply->deleteLater();
+          });
+  connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
+          {
     pipelineCCB->onError();
     comboSetEnabled(true);
+    reply->deleteLater();
   });
 }
 
 void DeployDialog::jobSelected(const QString &newText) {}
 
-// doesn't support pasting full path
 void DeployDialog::machineSelected(const QString &newText)
 {
   directoryCCB->clearItems();
   if (newText == "localhost")
   {
     localhostSetEnabled(true);
-    // clear everything
     directoryCCB->clear();
   }
   else
   {
     localhostSetEnabled(false);
-    // just... enable back?
-    //directoryCCB->updateItems(QList<QString>({"/"})); // triggers shouldUpdate()
     this->ssh = DataManager::getConnection(newText);
   }
 }
@@ -133,20 +150,24 @@ void DeployDialog::machineSelected(const QString &newText)
 // should be called on every change..?
 void DeployDialog::directorySelected(const QString &newText)
 {
-  if(machineCCB->getSelectedItem() == "localhost") return;
-  if(!newText.endsWith("/") || directoryCCB->getSelectedItem() == newText) return;
+  if (machineCCB->getSelectedItem() == "localhost")
+    return;
+  if (!newText.endsWith("/") || directoryCCB->getSelectedItem() == newText)
+    return;
 
   // if ends with a slash -> check response with this exact directory and set
   QString responseMain = ssh.sendCommand("ls -d " + newText.toStdString());
   // failure (selected=none, color=red), return
-  if(!responseMain.split("\n").value(0).startsWith("/"))
+  if (!responseMain.split("\n").value(0).startsWith("/"))
   {
     directoryCCB->onError();
     return;
-  } 
+  }
   QString responseExtra = ssh.sendCommand("ls -d " + newText.toStdString() + "*/ " + newText.toStdString() + ".*/");
   QList<QString> items = responseMain.split("\n") + responseExtra.split("\n");
-  items.removeIf([](const QString i){ return !i.startsWith("/") || i == "";});
+  for (size_t i = 0; i < items.size(); i++)
+    if (!items[i].startsWith("/") || items[i] == "")
+      items.removeAt(i--);
   // update without triggering shouldUpdate()
   directoryCCB->updateItems(items, false);
   directoryCCB->setSelectedItem(newText);
@@ -155,14 +176,16 @@ void DeployDialog::directorySelected(const QString &newText)
 void DeployDialog::pathSelectClicked()
 {
   QString path = QFileDialog::getExistingDirectory(this, tr("Select directory"));
-  if (path.isEmpty()) return;
+  if (path.isEmpty())
+    return;
   directoryCCB->setSelectedItem(path);
 }
 
 void DeployDialog::dirSaveChecked(bool state)
 {
   QString currentText = directoryCCB->getCurrentText();
-  if (state && !currentText.isEmpty()) directoryCCB->setSelectedItem(currentText); // doesn't trigger shouldUpdate()
+  if (state && !currentText.isEmpty())
+    directoryCCB->setSelectedItem(currentText); // doesn't trigger shouldUpdate()
   else if (!state)
   {
     directoryCCB->clear();
@@ -174,28 +197,32 @@ QJsonObject DeployDialog::getData()
 {
   QJsonObject temp;
   temp["project"] = projectCCB->getSelectedItemId();
+  temp["projectName"] = projectCCB->getSelectedItem();
   temp["branch"] = branchCCB->getSelectedItem();
   temp["pipeline"] = pipelineCCB->getSelectedItemId();
+  temp["pipelineName"] = pipelineCCB->getSelectedItem();
   temp["job"] = jobCCB->getSelectedItemId();
+  temp["jobName"] = jobCCB->getSelectedItem();
+  temp["path"] = ui->lineEdit->text();
   temp["machine"] = machineCCB->getSelectedItem();
-  temp["directory"] = projectCCB->getSelectedItem();
-  temp["mode"] = ui->radioButtonCurl->isChecked() ? "curl" : "sftp";
+  temp["directory"] = directoryCCB->getSelectedItem();
   temp["createDir"] = ui->checkBox->isChecked();
-  temp["display"] = projectCCB->getSelectedItem() + "/" + temp["branch"].toString() +
-    "/" + pipelineCCB->getSelectedItem() + " -> " + temp["machine"].toString() + "(" +
-    temp["directory"].toString() + ")";
-  qDebug() << temp;
+  temp["display"] = temp["projectName"].toString() + "/" + temp["branch"].toString() +
+                    "/" + temp["jobName"].toString() + " (" +
+                    (temp["path"].toString().isEmpty() ? "*" : temp["path"].toString()) +
+                    ") -> " + temp["machine"].toString() +
+                    "(" + temp["directory"].toString() + ")";
   return temp;
 }
 
 bool DeployDialog::verifyData()
 {
   return !projectCCB->getSelectedItem().isEmpty() &&
-    !branchCCB->getSelectedItem().isEmpty() &&
-    !pipelineCCB->getSelectedItem().isEmpty() &&
-    !jobCCB->getSelectedItem().isEmpty() &&
-    !machineCCB->getSelectedItem().isEmpty() &&
-    !directoryCCB->getSelectedItem().isEmpty();
+         !branchCCB->getSelectedItem().isEmpty() &&
+         !pipelineCCB->getSelectedItem().isEmpty() &&
+         !jobCCB->getSelectedItem().isEmpty() &&
+         !machineCCB->getSelectedItem().isEmpty() &&
+         !directoryCCB->getSelectedItem().isEmpty();
 }
 
 void DeployDialog::clearFileds()
@@ -207,34 +234,21 @@ void DeployDialog::clearFileds()
   machineCCB->clear();
   directoryCCB->clear();
   ui->checkBox->setChecked(false);
-  ui->radioButtonCurl->setChecked(true);
-  ui->radioButtonSftp->setChecked(false);
+  ui->lineEdit->clear();
   this->init();
 }
 
 void DeployDialog::setFields(const QJsonObject &data)
 {
-  // using direct input to trigger shouldUpdate() slot
-  ui->comboBoxProject->setEditText(api.getProjects().value(data["project"].toString()));
   branchCCB->setSelectedItem(data["branch"].toString());
-  //auto future = api.getPipelines(data["project"].toString(), data["branch"].toString());
-  // ui->comboBoxProject->setCurrentText(
-  //     ApiHandler::getProjectName(data["project"].toInt()));
-  // ui->comboBoxBranch->setCurrentText(data["branch"].toString());
-  // // auto tempPipelnes = ApiHandler::getPipelines(data["project"].toInt(),
-  // // data["branch"].toString());
-  // // ui->comboBoxPipeline->setCurrentText(tempPipelnes.value(data["pipeline"].toDouble()));
-  // // auto tempJobs = ApiHandler::getJobs(data["project"].toInt(),
-  // // data["pipeline"].toDouble());
-  // // ui->comboBoxJob->setCurrentText(tempJobs.value(data["job"].toDouble()));
-  // ui->comboBoxMachine->setCurrentText(data["machine"].toString());
-  // ui->comboBoxDirectory->setCurrentText(data["directory"].toString());
-  // ui->checkBox->setChecked(data["createDir"].toBool());
-  // if (data["mode"].toString() == "curl")
-  //   ui->radioButtonCurl->setChecked(true);
-  // else if (data["mode"].toString() == "sftp")
-  //   ui->radioButtonSftp->setChecked(true);
-  // projectSelected(ui->comboBoxProject->currentText());
-  // dirSaveChecked(data["createDir"].toBool());
-  // curlClicked(data["mode"].toString() == "curl");
+  pipelineCCB->setSelectedItem(data["pipelineName"].toString());
+  jobCCB->setSelectedItem(data["jobName"].toString());
+
+  // using direct input to trigger shouldUpdate() slot and request items (should use cache)
+  ui->comboBoxProject->setEditText(data["projectName"].toString());
+
+  ui->comboBoxMachine->setEditText(data["machine"].toString()); // and again
+  directoryCCB->setSelectedItem(data["directory"].toString());
+
+  ui->checkBox->setChecked(data["createDir"].toBool());
 }

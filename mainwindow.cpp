@@ -23,16 +23,16 @@ MainWindow::MainWindow(QWidget *parent)
       new CoolerList("projects",
                      {ui->buttonTokensAdd, ui->buttonTokensRemove,
                       ui->buttonTokensDuplicate, ui->buttonTokensEdit},
-                     ui->listTokens, new TokenDialog(), this);
+                     ui->listTokens, new TokenDialog(this), this);
   this->sshList = new CoolerList("ssh",
                                  {ui->buttonSshAdd, ui->buttonSshRemove,
                                   ui->buttonSshDuplicate, ui->buttonSshEdit},
-                                 ui->listSsh, new SshDialog(), this);
+                                 ui->listSsh, new SshDialog(this), this);
   this->deployList =
       new CoolerList("deploy",
                      {ui->buttonDeployAdd, ui->buttonDeployRemove,
                       ui->buttonDeployDuplicate, ui->buttonDeployEdit},
-                     ui->listDeploy, new DeployDialog(), this);
+                     ui->listDeploy, new DeployDialog(this), this);
   connect(ui->lineEditApi, &QLineEdit::editingFinished, this,
           &MainWindow::updateApiUrl);
   connect(ui->lineEditUserToken, &QLineEdit::editingFinished, this,
@@ -54,29 +54,34 @@ MainWindow::~MainWindow()
 void MainWindow::updateApiUrl()
 {
   QString newUrl = ui->lineEditApi->text();
-  auto future = api.checkURL(newUrl);
-  future
-      .then([newUrl, label = ui->labelApi](bool res)
-            {
-        ApiHandler::setURL(newUrl);
-        DataManager::setApiUrl(newUrl);
-        label->setStyleSheet("color: green;"); })
-      .onFailed([label = ui->labelApi](QNetworkReply::NetworkError e)
-                { label->setStyleSheet("color: red;"); });
+  ApiReply *reply = api.checkURL(newUrl);
+  connect(reply, &ApiReply::dataReady, reply, [newUrl, label = ui->labelApi, reply](const QByteArray &data)
+          {
+    ApiHandler::setURL(newUrl);
+    DataManager::setApiUrl(newUrl);
+    label->setStyleSheet("color: green;");
+    reply->deleteLater();
+  });
+  connect(reply, &ApiReply::errorOccurred, reply, [label = ui->labelApi, reply](QNetworkReply::NetworkError e) {
+    label->setStyleSheet("color: red;");
+    reply->deleteLater();
+  });
 }
 
 void MainWindow::updateUserToken()
 {
   ui->labelUserToken->setStyleSheet("");
   QString token = ui->lineEditUserToken->text();
-  auto future = api.addToken(token);
-  future
-      .then([token, label = ui->labelUserToken]()
-            {
-        DataManager::setUserToken(token);
-        label->setStyleSheet("color: green;"); })
-      .onFailed([label = ui->labelUserToken](QNetworkReply::NetworkError)
-                { label->setStyleSheet("color: red;"); });
+  ApiReply *reply = api.addToken(token);
+  connect(reply, &ApiReply::dataReady, reply, [token, label = ui->labelUserToken, reply](const QByteArray &data) {
+    DataManager::setUserToken(token);
+    label->setStyleSheet("color: green;");
+    reply->deleteLater();
+  });
+  connect(reply, &ApiReply::errorOccurred, reply, [label = ui->labelUserToken, reply](QNetworkReply::NetworkError e) {
+    label->setStyleSheet("color: red;");
+    reply->deleteLater();
+  });
 }
 
 void MainWindow::nextPage()
