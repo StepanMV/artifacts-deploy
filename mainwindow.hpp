@@ -30,6 +30,12 @@ private slots:
 
     void startDownload();
 
+    void importClicked();
+    void exportClicked();
+
+signals:
+    void apiUpdated();
+
 private:
     ApiHandler api;
     //QNetworkAccessManager qnam;

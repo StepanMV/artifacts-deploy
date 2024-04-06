@@ -20,11 +20,14 @@ public:
     static void removeFromCoolerList(const QString& key, size_t start, size_t end);
 
     static bool isPresent(const QString& arrayKey, const QString& key, const QString& value);
-    static bool isPresent(const QString& arrayKey, const QString& key, size_t value);
+    // ssh is a list inside the data: "find element in a list whose key has a value == value"
     static QJsonObject getObject(const QString& arrayKey, const QString& key, const QString& value);
-    static QJsonObject getObject(const QString& arrayKey, const QString& key, size_t value);
+    // get all values of a key in a list
     static QList<QString> getList(const QString& arrayKey, const QString& key);
     static SSHConnection getConnection(const QString& name);
+
+    static void dumpData(const QString& path);
+    static void loadData(const QString& path);
 
 private:
     static QJsonObject data;
