@@ -37,6 +37,8 @@ DeployDialog::DeployDialog(QWidget *parent)
 DeployDialog::~DeployDialog()
 {
   delete ui;
+  if (ssh)
+    delete ssh;
   delete projectCCB;
   delete branchCCB;
   delete pipelineCCB;
@@ -81,14 +83,12 @@ void DeployDialog::projectSelected(const QString &newText)
           {
             comboSetEnabled(true);
             branchCCB->updateItems(branches); // triggers shouldUpdate()
-            reply->deleteLater();
-          });
+            reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
           {
     projectCCB->onError();
     comboSetEnabled(true);
-    reply->deleteLater();
-  });
+    reply->deleteLater(); });
 }
 
 void DeployDialog::branchSelected(const QString &newText)
@@ -101,14 +101,12 @@ void DeployDialog::branchSelected(const QString &newText)
           {
             comboSetEnabled(true);
             pipelineCCB->updateItems(pipelines); // triggers shouldUpdate()
-            reply->deleteLater();
-          });
+            reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
           {
     branchCCB->onError();
     comboSetEnabled(true);
-    reply->deleteLater();
-  });
+    reply->deleteLater(); });
 }
 
 void DeployDialog::pipelineSelected(const QString &newText)
@@ -120,14 +118,12 @@ void DeployDialog::pipelineSelected(const QString &newText)
           {
             comboSetEnabled(true);
             jobCCB->updateItems(jobs); // triggers shouldUpdate()
-            reply->deleteLater();
-          });
+            reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
           {
     pipelineCCB->onError();
     comboSetEnabled(true);
-    reply->deleteLater();
-  });
+    reply->deleteLater(); });
 }
 
 void DeployDialog::jobSelected(const QString &newText) {}
@@ -143,7 +139,14 @@ void DeployDialog::machineSelected(const QString &newText)
   else
   {
     localhostSetEnabled(false);
-    this->ssh = DataManager::getConnection(newText);
+    try
+    {
+      this->ssh = DataManager::getConnection(newText);
+    }
+    catch (const SshError &e)
+    {
+      machineCCB->onError();
+    }
   }
 }
 
@@ -156,14 +159,33 @@ void DeployDialog::directorySelected(const QString &newText)
     return;
 
   // if ends with a slash -> check response with this exact directory and set
-  QString responseMain = ssh.sendCommand("ls -d " + newText.toStdString());
+  QString responseMain;
+  try
+  {
+    responseMain = ssh->sendCommand("ls -d " + newText.toStdString());
+  }
+  catch (const SshError &e)
+  {
+    directoryCCB->onError();
+    return;
+  }
+  
   // failure (selected=none, color=red), return
   if (!responseMain.split("\n").value(0).startsWith("/"))
   {
     directoryCCB->onError();
     return;
   }
-  QString responseExtra = ssh.sendCommand("ls -d " + newText.toStdString() + "*/ " + newText.toStdString() + ".*/");
+  QString responseExtra;
+  try
+  {
+    responseExtra = ssh->sendCommand("ls -d " + newText.toStdString() + "*/ " + newText.toStdString() + ".*/");
+  }
+  catch (const SshError &e)
+  {
+    directoryCCB->onError();
+    return;
+  }
   QList<QString> items = responseMain.split("\n") + responseExtra.split("\n");
   for (size_t i = 0; i < items.size(); i++)
     if (!items[i].startsWith("/") || items[i] == "")
@@ -206,7 +228,11 @@ QJsonObject DeployDialog::getData()
   temp["path"] = ui->lineEdit->text();
   temp["machine"] = machineCCB->getSelectedItem();
   temp["directory"] = directoryCCB->getSelectedItem();
+  QString tempStr = temp["directory"].toString();
+  temp["directory"] = tempStr.endsWith("/") ? tempStr.left(tempStr.length() - 1) : tempStr;
   temp["createDir"] = ui->checkBox->isChecked();
+  temp["cachePath"] = "cache/" + temp["project"].toString() + "_" + temp["job"].toString() + "/" +
+                      (temp["path"].toString().isEmpty() ? "artifacts.zip" : temp["path"].toString());
   temp["display"] = temp["projectName"].toString() + "/" + temp["branch"].toString() +
                     "/" + temp["jobName"].toString() + " (" +
                     (temp["path"].toString().isEmpty() ? "*" : temp["path"].toString()) +
@@ -243,6 +269,7 @@ void DeployDialog::setFields(const QJsonObject &data)
   branchCCB->setSelectedItem(data["branch"].toString());
   pipelineCCB->setSelectedItem(data["pipelineName"].toString());
   jobCCB->setSelectedItem(data["jobName"].toString());
+  ui->lineEdit->setText(data["path"].toString());
 
   // using direct input to trigger shouldUpdate() slot and request items (should use cache)
   ui->comboBoxProject->setEditText(data["projectName"].toString());

@@ -81,12 +81,12 @@ bool SshDialog::verifyData()
         if (ui->lineEditPassword->text().isEmpty())
         {
             SSHConnection(ui->lineEditIp->text().toStdString(), ui->lineEditPort->text().toInt(), ui->lineEditUser->text().toStdString(),
-                          ui->lineEditKeyPath->text().toStdString(), ui->lineEditKeyPass->text().toStdString()).connect();
+                          ui->lineEditKeyPath->text().toStdString(), ui->lineEditKeyPass->text().toStdString());
         }
         else
         {
             SSHConnection(ui->lineEditIp->text().toStdString(), ui->lineEditPort->text().toInt(), ui->lineEditUser->text().toStdString(),
-                          ui->lineEditPassword->text().toStdString()).connect();
+                          ui->lineEditPassword->text().toStdString());
         }
     }
     catch (const AllocationError& e)

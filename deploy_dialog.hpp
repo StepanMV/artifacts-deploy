@@ -51,7 +51,7 @@ private:
   CoolerComboBox *jobCCB;
   CoolerComboBox *machineCCB;
   CoolerComboBox *directoryCCB;
-  SSHConnection ssh;
+  SSHConnection *ssh = nullptr;
 };
 
 #endif // DEPLOY_DIALOG_HPP

@@ -79,7 +79,7 @@ QJsonObject DataManager::getObject(const QString &arrayKey, const QString &key, 
     return QJsonObject();
 }
 
-SSHConnection DataManager::getConnection(const QString &name)
+SSHConnection *DataManager::getConnection(const QString &name)
 {
     QJsonObject sshData = DataManager::getObject("ssh", "name", name);
     std::string ip = sshData.value("ip").toString().toStdString();
@@ -89,9 +89,10 @@ SSHConnection DataManager::getConnection(const QString &name)
     std::string keyPass = sshData.value("keyPass").toString().toStdString();
     std::string password = sshData.value("password").toString().toStdString();
     if (password.empty())
-        return SSHConnection(ip, port, user, keyPath, keyPass);
+        return new SSHConnection(ip, port, user, keyPath, keyPass);
     else
-        return SSHConnection(ip, port, user, password);
+        return new SSHConnection(ip, port, user, password);
+    
 }
 
 void DataManager::dumpData(const QString &path)

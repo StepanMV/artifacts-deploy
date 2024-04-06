@@ -134,6 +134,16 @@ ApiReply *ApiHandler::getJobs(const QString &projectID, const QString &pipelineI
   return reply;
 }
 
+ApiReply *ApiHandler::getArtifacts(const QString &projectID, const QString &jobID, const QString &path)
+{
+  QString url = apiURL + "/projects/" + projectID + "/jobs/" + jobID + "/artifacts";
+  if (!path.isEmpty())
+    url += "/" + path;
+  ApiReply *reply = makeRequest(url, idToToken[projectID]);
+  reply->qReply->disconnect();
+  return reply;
+}
+
 ApiHandler::ApiHandler(QObject *parent)
     : QObject{parent} {}
 
@@ -152,10 +162,10 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
   ApiReply *reply = new ApiReply(qnam.get(request));
   if (cache.contains(authUrl))
   {
-    QTimer::singleShot(100, reply, [this, reply, authUrl]() {
+    QTimer::singleShot(100, reply, [this, reply, authUrl]()
+                       {
       reply->qReply->abort();
-      emit reply->dataReady(cache[authUrl]);
-    });
+      emit reply->dataReady(cache[authUrl]); });
     return reply;
   }
   connect(reply->qReply, &QNetworkReply::finished, reply, [this, reply, authUrl]()

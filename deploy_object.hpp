@@ -4,37 +4,52 @@
 #include <QObject>
 #include <QNetworkReply>
 #include <QFile>
+#include <QListWidgetItem>
 #include "ssh_connection.hpp"
+#include "api_reply.hpp"
+#include <stdexcept>
+#include <QDir>
+
+class ZipException : public std::runtime_error
+{
+public:
+    ZipException();
+};
 
 class DeployObject : public QObject
 {
     Q_OBJECT
 public:
-    explicit DeployObject(QObject *parent = nullptr);
-    DeployObject(QNetworkAccessManager& qnam, const QUrl& url, const QString& downloadDir);
-    DeployObject(QNetworkAccessManager& qnam, const QUrl& url, const QString& downloadDir, const SSHConnection& ssh, const QString& destinationDir);
-
-    void startDownload();
-    void deploy();
-
-signals:
-    void downloaded();
+    explicit DeployObject(ApiReply *reply, const QString& directory, const QString& cachePath, QListWidgetItem *item, QObject *parent = nullptr);
+    explicit DeployObject(ApiReply *reply, const QString& directory, const QString& cachePath, QListWidgetItem *item, SSHConnection *connection, QObject *parent = nullptr);
+    ~DeployObject();
 
 private slots:
-    void onNetError(QNetworkReply::NetworkError e);
-    void onNetProgress(qint64 read, qint64 total);
-    void onNetFinished();
+    void onErrorOccured(QNetworkReply::NetworkError e);
+    void onDownloadProgress(qint64 read, qint64 total);
+    void onFinished();
+
+signals:
+    void done();
 
 private:
-    bool shouldDeploy;
-    QString destinationDir, downloadDir;
-    QNetworkReply* reply;
-    QFile* file;
-    size_t progress;
-    size_t total;
-    SSHConnection ssh;
+    void downloaded();
+    void unzip();
+    void sendFile(const QString& source, const QString& dest);
+    
+    ApiReply *reply;
+    QString directory;
+    QString cachePath;
+    QString cacheFilename;
+    QString cachePathLock;
+    QString cacheParentPath;
+    QListWidgetItem *item;
+    SSHConnection *connection = nullptr;
 
-    static QHash<QUrl, QString> cache;
+    QFile file;
+    QFile lockFile;
+    QString display;
+    QDir dir;
 };
 
 #endif // DEPLOYOBJECT_HPP

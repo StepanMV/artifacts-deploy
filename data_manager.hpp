@@ -24,7 +24,7 @@ public:
     static QJsonObject getObject(const QString& arrayKey, const QString& key, const QString& value);
     // get all values of a key in a list
     static QList<QString> getList(const QString& arrayKey, const QString& key);
-    static SSHConnection getConnection(const QString& name);
+    static SSHConnection *getConnection(const QString& name);
 
     static void dumpData(const QString& path);
     static void loadData(const QString& path);

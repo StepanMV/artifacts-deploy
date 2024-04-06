@@ -8,10 +8,7 @@
 #include <fcntl.h>
 #include <fstream>
 
-AllocationError::AllocationError() : std::runtime_error("") {}
-ConnectionError::ConnectionError() : std::runtime_error("") {}
-AuthenticationError::AuthenticationError() : std::runtime_error("") {}
-VerificationError::VerificationError() : std::runtime_error("") {}
+SshError::SshError() : std::runtime_error("") {}
 
 SSHConnection::SSHConnection(const std::string &ip, size_t port, const std::string &user)
 {
@@ -31,6 +28,12 @@ SSHConnection::SSHConnection(const std::string &ip, size_t port, const std::stri
 {
     this->password = password;
     this->session = connect();
+}
+
+SSHConnection::~SSHConnection()
+{
+    ssh_disconnect(session);
+    ssh_free(session);
 }
 
 ssh_session SSHConnection::connect()
@@ -79,13 +82,13 @@ QString SSHConnection::sendCommand(const std::string &command)
 {
     ssh_channel channel = ssh_channel_new(session);
     if (channel == NULL)
-        throw std::runtime_error("Error creating ssh channel");
+        throw SshError();
 
     int code = ssh_channel_open_session(channel);
     if (code != SSH_OK)
     {
         ssh_channel_free(channel);
-        throw std::runtime_error("Error openning ssh channel session");
+        throw SshError();
     }
 
     code = ssh_channel_request_exec(channel, command.c_str());
@@ -93,7 +96,7 @@ QString SSHConnection::sendCommand(const std::string &command)
     {
         ssh_channel_close(channel);
         ssh_channel_free(channel);
-        throw std::runtime_error("Error sending ssh command");
+        throw SshError();
     }
 
     QString response;
@@ -109,7 +112,7 @@ QString SSHConnection::sendCommand(const std::string &command)
     {
         ssh_channel_close(channel);
         ssh_channel_free(channel);
-        throw std::runtime_error("Error reading ssh command response");
+        throw SshError();
     }
 
     ssh_channel_send_eof(channel);
@@ -128,14 +131,14 @@ void SSHConnection::sendFile(const std::string &source, const std::string &dest)
     sftp = sftp_new(session);
     if (sftp == NULL)
     {
-        throw std::runtime_error("Error allocating SFTP session");
+        throw SshError();
     }
 
     rc = sftp_init(sftp);
     if (rc != SSH_OK)
     {
         sftp_free(sftp);
-        throw std::runtime_error("Error initializing SFTP session");
+        throw SshError();
     }
 
     int access_type = O_WRONLY | O_CREAT | O_TRUNC;
@@ -145,7 +148,7 @@ void SSHConnection::sendFile(const std::string &source, const std::string &dest)
                      access_type, S_IRWXU);
     if (file == NULL)
     {
-        throw std::runtime_error("Can't open file for writing");
+        throw SshError();
     }
 
     std::ifstream fin(source, std::ios::binary);
@@ -160,7 +163,7 @@ void SSHConnection::sendFile(const std::string &source, const std::string &dest)
             if (nwritten != fin.gcount())
             {
                 sftp_close(file);
-                throw std::runtime_error("Can't write data to file");
+                throw SshError();
             }
         }
     }
@@ -168,7 +171,7 @@ void SSHConnection::sendFile(const std::string &source, const std::string &dest)
     rc = sftp_close(file);
     if (rc != SSH_OK)
     {
-        throw std::runtime_error("Can't close the written file");
+        throw SshError();
     }
     sftp_free(sftp);
 }
@@ -209,55 +212,30 @@ int SSHConnection::verifyHost(ssh_session session)
 
         break;
     case SSH_KNOWN_HOSTS_CHANGED:
-        fprintf(stderr, "Host key for server changed: it is now:\n");
-        ssh_print_hexa("Public key hash", hash, hlen);
-        fprintf(stderr, "For security reasons, connection will be stopped\n");
         ssh_clean_pubkey_hash(&hash);
 
         return -1;
     case SSH_KNOWN_HOSTS_OTHER:
-        fprintf(stderr, "The host key for this server was not found but an other"
-                        "type of key exists.\n");
-        fprintf(stderr, "An attacker might change the default server key to"
-                        "confuse your client into thinking the key does not exist\n");
         ssh_clean_pubkey_hash(&hash);
 
         return -1;
     case SSH_KNOWN_HOSTS_NOT_FOUND:
-        fprintf(stderr, "Could not find known host file.\n");
-        fprintf(stderr, "If you accept the host key here, the file will be"
-                        "automatically created.\n");
 
         /* FALL THROUGH to SSH_SERVER_NOT_KNOWN behavior */
 
     case SSH_KNOWN_HOSTS_UNKNOWN:
         hexa = ssh_get_hexa(hash, hlen);
-        fprintf(stderr, "The server is unknown. Do you trust the host key?\n");
-        fprintf(stderr, "Public key hash: %s\n", hexa);
         ssh_string_free_char(hexa);
         ssh_clean_pubkey_hash(&hash);
-        p = fgets(buf, sizeof(buf), stdin);
-        if (p == NULL)
-        {
-            return -1;
-        }
-
-        cmp = strncasecmp(buf, "yes", 3);
-        if (cmp != 0)
-        {
-            return -1;
-        }
 
         rc = ssh_session_update_known_hosts(session);
         if (rc < 0)
         {
-            fprintf(stderr, "Error %s\n", strerror(errno));
             return -1;
         }
-
         break;
+        
     case SSH_KNOWN_HOSTS_ERROR:
-        fprintf(stderr, "Error %s", ssh_get_error(session));
         ssh_clean_pubkey_hash(&hash);
         return -1;
     }

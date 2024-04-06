@@ -20,6 +20,7 @@ public:
     ApiReply *getBranches(const QString &projectID);
     ApiReply *getPipelines(const QString &projectID, const QString &branchName);
     ApiReply *getJobs(const QString &projectID, const QString &pipelineID);
+    ApiReply *getArtifacts(const QString &projectID, const QString &jobID, const QString &path = "");
 
     static void setURL(const QString &url);
     static const QString &getURL();

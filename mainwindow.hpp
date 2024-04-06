@@ -5,7 +5,6 @@
 #include <QNetworkReply>
 #include "api_handler.hpp"
 #include "cooler_list.hpp"
-#include "download_manager.hpp"
 #include "deploy_object.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -28,7 +27,7 @@ private slots:
     void nextPage();
     void prevPage();
 
-    void startDownload();
+    void proceedClicked();
 
     void importClicked();
     void exportClicked();

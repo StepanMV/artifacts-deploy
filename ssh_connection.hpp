@@ -10,42 +10,47 @@
 #include <sys/types.h>
 #include <QDebug>
 
-class AllocationError : public std::runtime_error
+class SshError : public std::runtime_error
 {
 public:
-    AllocationError();
+    SshError();
 };
 
-class ConnectionError : public std::runtime_error
+class AllocationError : public SshError
 {
 public:
-    ConnectionError();
+    AllocationError() = default;
 };
 
-class AuthenticationError : public std::runtime_error
+class ConnectionError : public SshError
 {
 public:
-    AuthenticationError();
+    ConnectionError() = default;
 };
 
-class VerificationError : public std::runtime_error
+class VerificationError : public SshError
 {
 public:
-    VerificationError();
+    VerificationError() = default;
+};
+
+class AuthenticationError : public SshError
+{
+public:
+    AuthenticationError() = default;
 };
 
 class SSHConnection
 {
 public:
-    SSHConnection() = default;
     SSHConnection(const std::string& ip, size_t port, const std::string& user, const std::string& keyPath, const std::string& keyPass);
     SSHConnection(const std::string& ip, size_t port, const std::string& user, const std::string& password);
-    ~SSHConnection() = default;
+    ~SSHConnection();
     QString sendCommand(const std::string& command);
     void sendFile(const std::string& source, const std::string& dest);
-    ssh_session connect();
 
 private:
+    ssh_session connect();
     SSHConnection(const std::string& ip, size_t port, const std::string& user);
     int verifyHost(ssh_session session);
 

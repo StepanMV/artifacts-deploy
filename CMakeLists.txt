@@ -9,8 +9,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Network)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+find_package(libssh REQUIRED)
+find_package(libzip REQUIRED)
 
 file(GLOB PROJECT_SOURCES *.cpp *.hpp *.ui)
 
@@ -32,16 +34,7 @@ else()
 
 endif()
 
-find_package(libssh REQUIRED)
-if (NOT TARGET ssh)
-     add_library(ssh SHARED IMPORTED)
-     set_target_properties(ssh
-                           PROPERTIES
-                 ​          IMPORTED_LOCATION "${LIBSSH_LIBRARIES}"
-                           INTERFACE_INCLUDE_DIRECTORIES "${LIBSSH_INCLUDE_DIR}")
-endif()
-
-target_link_libraries(artifacts-deploy-v2 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network ssh)
+target_link_libraries(artifacts-deploy-v2 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network ssh zip)
 
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
