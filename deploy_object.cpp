@@ -166,7 +166,6 @@ void DeployObject::downloaded()
                 entryParentPath = "";
             else
                 entryParentPath = entryParentPath.substr(cacheParentPath.length() + 1);
-            qDebug() << entryPath << entryParentPath;
             if (connection)
             {
                 sendFile(QString::fromStdString(entryPath), directory + "/" + QString::fromStdString(entryPath));
