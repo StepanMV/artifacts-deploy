@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 find_package(libssh REQUIRED)
-find_package(libzip REQUIRED)
+# find_package(libzip REQUIRED)
 
 file(GLOB PROJECT_SOURCES *.cpp *.hpp *.ui)
 
@@ -34,6 +34,7 @@ else()
 
 endif()
 
+add_subdirectory(libzip-1.10.1)
 target_link_libraries(artifacts-deploy-v2 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network ssh zip)
 
 
