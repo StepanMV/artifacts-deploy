@@ -14,7 +14,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network UiTools)
 find_package(libssh REQUIRED)
 find_package(libzip REQUIRED)
 
-file(GLOB PROJECT_SOURCES src/*.cpp src/*.hpp src/ui/*.ui)
+file(GLOB PROJECT_SOURCES src/*.cpp src/*.hpp src/ui/*.ui src/resources/*.qrc)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(artifacts-deploy MANUAL_FINALIZATION ${PROJECT_SOURCES})

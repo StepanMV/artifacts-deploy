@@ -22,7 +22,7 @@ namespace fs = std::filesystem;
 ZipException::ZipException() : std::runtime_error("") {}
 
 DeployListElement::DeployListElement(const QJsonObject &data, SSHConnection *connection, QWidget *parent)
-    : ComplexListElement("../src/ui/deploy_list_element.ui", data, parent), connection(connection)
+    : ComplexListElement(":/ui/deploy_list_element.ui", data, parent), connection(connection)
 {
     this->directory = data["directory"].toString();
     this->cachePath = data["cachePath"].toString();

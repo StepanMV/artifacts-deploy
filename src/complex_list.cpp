@@ -5,7 +5,7 @@
 #include <QJsonArray>
 
 ComplexList::ComplexList(const QString &prefix, QWidget *widget, ComplexDialog *dialog, QWidget *parent)
-    : QWidget(parent), dialog(dialog), prefix(prefix), elementTemplateFilename("../src/ui/" + prefix + "_list_element.ui")
+    : QWidget(parent), dialog(dialog), prefix(prefix), elementTemplateFilename(":/ui/" + prefix + "_list_element.ui")
 {
     DataManager::addCoolerList(prefix);
     this->elements = QList<ComplexListElement *>();

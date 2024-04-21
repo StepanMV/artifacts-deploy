@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../ui/deploy_list_element.ui</file>
+        <file>../ui/ssh_list_element.ui</file>
+        <file>../ui/token_list_element.ui</file>
+    </qresource>
+</RCC>
