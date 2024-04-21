@@ -61,8 +61,7 @@ void MainWindow::updateUserToken()
           {
     DataManager::setUserToken(token);
     label->setStyleSheet("color: green;");
-    reply->deleteLater();
-    emit tokenUpdated(); });
+    reply->deleteLater();});
   connect(reply, &ApiReply::errorOccurred, reply, [label = ui->userTokenLabel, reply](QNetworkReply::NetworkError e)
           {
     label->setStyleSheet("color: red;");
@@ -105,10 +104,8 @@ void MainWindow::import(const QString &filename)
     connect(reply, &ApiReply::dataReady, reply, [this, reply](const QByteArray &data)
             { reply->deleteLater(); });
   }
-  connect(&api, &ApiHandler::allRepliesFinished, this, [this]()
-          { 
   tokenList->init(DataManager::getData().value("projects").toArray());
   sshList->init(DataManager::getData().value("ssh").toArray());
   deployList->init(DataManager::getData().value("deploy").toArray());
-  qDebug() << DataManager::getData(); });
+  qDebug() << DataManager::getData();
 }

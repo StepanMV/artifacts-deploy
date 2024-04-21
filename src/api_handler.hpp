@@ -29,15 +29,11 @@ public:
 
     QString getArtifactsUrl(const QString &projId, const QString &jobId);
 
-signals:
-    void allRepliesFinished();
-
 private:
     ApiReply *makeRequest(const QString &url, const QString &token = "");
     ApiReply *addTokenPaged(const QString &token, size_t i);
 
     QNetworkAccessManager qnam;
-    QList<ApiReply *> replies;
     static QString apiURL;
     static QMap<QString, QString> idToToken;
     static QMap<QString, QString> idToName;

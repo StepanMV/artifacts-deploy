@@ -11,7 +11,6 @@ public:
     explicit DeployList(QWidget *widget, ComplexDialog *dialog, QWidget *parent = nullptr);
     virtual ~DeployList() = default;
     virtual void addElement(const QJsonObject &data) override;
-    virtual void init(const QJsonArray &data) override;
 
 protected slots:
     void runAllButtonClicked();

@@ -168,7 +168,6 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
       emit reply->dataReady(cache[authUrl]); });
     return reply;
   }
-  replies.append(reply);
   connect(reply->qReply, &QNetworkReply::finished, reply, [this, reply, authUrl]()
           {
     if (reply->qReply->error() != QNetworkReply::NoError)
@@ -176,12 +175,9 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
       return;
     }
     QByteArray data = reply->qReply->readAll();
-    replies.removeOne(reply);
     qDebug() << "Constructor: " << reply->qReply->url() << "\n"; 
     cache[authUrl] = data;
-    emit reply->dataReady(data);
-    if (replies.isEmpty())
-      emit allRepliesFinished(); });
+    emit reply->dataReady(data); });
   return reply;
 }
 

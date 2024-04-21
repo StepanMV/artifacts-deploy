@@ -31,7 +31,6 @@ private slots:
 
 signals:
     void apiUpdated();
-    void tokenUpdated();
 
 private:
     void import(const QString &filename);

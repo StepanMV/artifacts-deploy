@@ -63,16 +63,3 @@ void DeployList::addElement(const QJsonObject &data)
             else element->setStatus(CLEStatus::FAIL, "INVALID DATA"); });
     connect(element->getButton("runButton"), &QPushButton::clicked, element, &DeployListElement::run);
 }
-
-void DeployList::init(const QJsonArray &data)
-{
-    DataManager::clearCoolerList(prefix);
-    for (auto element : data)
-    {
-        QJsonObject obj = element.toObject();
-        // dialog->verifyData(obj);
-        // obj = dialog->getData();
-        addElement(obj);
-    }
-    dialog->clearFileds();
-}
