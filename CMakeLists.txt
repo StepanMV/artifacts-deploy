@@ -9,10 +9,12 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Widgets Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+find_package(QT NAMES #[[Qt5]] Qt6 REQUIRED COMPONENTS Widgets Network UiTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network UiTools)
+find_package(libssh REQUIRED)
+find_package(libzip REQUIRED)
 
-file(GLOB PROJECT_SOURCES *.cpp *.hpp *.ui)
+file(GLOB PROJECT_SOURCES src/*.cpp src/*.hpp src/ui/*.ui)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(artifacts-deploy MANUAL_FINALIZATION ${PROJECT_SOURCES})
@@ -27,14 +29,17 @@ else()
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(artifacts-deploy ${PROJECT_SOURCES})
+        add_executable(artifacts-deploy ${PROJECT_SOURCES}
+            deploy_element.ui)
     endif()
 
 endif()
 
-add_library(libzip-1.10.1)
-add_library(libssh-0.10)
-target_link_libraries(artifacts-deploy PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network ssh zip)
+target_link_libraries(artifacts-deploy PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::UiTools
+    ssh zip)
 
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
