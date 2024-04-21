@@ -46,9 +46,10 @@ void MainWindow::updateApiUrl()
     label->setStyleSheet("color: green;");
     reply->deleteLater();
     emit apiUpdated(); });
-  connect(reply, &ApiReply::errorOccurred, reply, [label = ui->apiLabel, reply](QNetworkReply::NetworkError e)
+  connect(reply, &ApiReply::errorOccurred, reply, [labelApi = ui->apiLabel, labelToken = ui->userTokenLabel, reply](QNetworkReply::NetworkError e)
           {
-    label->setStyleSheet("color: red;");
+    labelApi->setStyleSheet("color: red;");
+    labelToken->setStyleSheet("");
     reply->deleteLater(); });
 }
 
@@ -59,9 +60,10 @@ void MainWindow::updateUserToken()
   ApiReply *reply = api.addToken(token);
   connect(reply, &ApiReply::dataReady, reply, [this, token, label = ui->userTokenLabel, reply](const QByteArray &data)
           {
+            qDebug() << data;
     DataManager::setUserToken(token);
     label->setStyleSheet("color: green;");
-    reply->deleteLater();});
+    reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [label = ui->userTokenLabel, reply](QNetworkReply::NetworkError e)
           {
     label->setStyleSheet("color: red;");

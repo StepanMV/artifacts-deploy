@@ -159,8 +159,17 @@ void DeployListElement::downloaded()
             }
             else
             {
-                dir.mkpath(directory + "/" + QString::fromStdString(entryParentPath));
-                fs::copy(entry.path(), fs::path(directory.toStdString() + "/" + entryPath), fs::copy_options::overwrite_existing);
+                try
+                {
+                    dir.mkpath(directory + "/" + QString::fromStdString(entryParentPath));
+                    fs::copy(entry.path(), fs::path(directory.toStdString() + "/" + entryPath), fs::copy_options::overwrite_existing);
+                }
+                catch (const fs::filesystem_error &e)
+                {
+                    this->setStatus(CLEStatus::FAIL, "FILESYSTEM ERROR");
+                    emit done();
+                    return;
+                }
             }
         }
     }

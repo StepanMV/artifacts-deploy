@@ -127,7 +127,7 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
     }
     qDebug() << "Constructor: " << reply->qReply->url() << "\n"; 
     QByteArray data = reply->qReply->readAll();
-    if (data.isEmpty())
+    if (data.isEmpty() || (!data.startsWith("{") && !data.startsWith("[")) || data == "[]" || data == "{}")
     {
       emit reply->errorOccurred(QNetworkReply::ContentNotFoundError);
       return;
