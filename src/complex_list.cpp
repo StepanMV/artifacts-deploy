@@ -29,7 +29,7 @@ void ComplexList::clear()
 {
     qDebug() << "Clearing " << prefix << " list";
     DataManager::clearCoolerList(prefix);
-    if (elements.isEmpty())
+    if (!elements.isEmpty())
         qDeleteAll(elements);
     elements.clear();
 }

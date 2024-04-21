@@ -18,13 +18,12 @@ MainWindow::MainWindow(QWidget *parent)
   this->deployList = new DeployList(ui->deployList, new DeployDialog(this), this);
   connect(ui->apiLineEdit, &QLineEdit::editingFinished, this, &MainWindow::updateApiUrl);
   connect(ui->userTokenLineEdit, &QLineEdit::editingFinished, this, &MainWindow::updateUserToken);
-  // connect(ui->buttonProceed, &QPushButton::clicked, this, &MainWindow::proceedClicked);
   connect(ui->settingsButton, &QPushButton::clicked, this, [this]()
           { ui->stackedWidget->setCurrentIndex(1); });
   connect(ui->settingsBackButton, &QPushButton::clicked, this, [this]()
           { ui->stackedWidget->setCurrentIndex(0); });
-  // connect(ui->loadButton, &QPushButton::clicked, this, &MainWindow::importClicked);
-  // connect(ui->saveButton, &QPushButton::clicked, this, &MainWindow::exportClicked);
+  connect(ui->loadButton, &QPushButton::clicked, this, &MainWindow::importClicked);
+  connect(ui->saveButton, &QPushButton::clicked, this, &MainWindow::exportClicked);
   connect(this, &MainWindow::apiUpdated, this, &MainWindow::updateUserToken);
   import("data.json");
 }

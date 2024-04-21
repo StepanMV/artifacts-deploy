@@ -47,7 +47,6 @@ void DeployDialog::comboSetEnabled(bool enabled)
 {
   ui->comboBoxProject->setEnabled(enabled);
   ui->comboBoxBranch->setEnabled(enabled);
-  ui->comboBoxPipeline->setEnabled(enabled);
   ui->comboBoxJob->setEnabled(enabled);
 }
 
