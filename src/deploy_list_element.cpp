@@ -55,19 +55,19 @@ void DeployListElement::setData(const QJsonObject &data)
 
 void DeployListElement::run()
 {
-    this->reply = api.getArtifacts(data["project"].toString(), data["job"].toString(), data["file"].toString());
+    this->reply = api.getArtifacts(data["project"].toString(), data["branch"].toString(), data["job"].toString(), data["file"].toString());
     reply->setParent(this);
     dir.mkpath(cacheDir);
     if (!lockFile.open(QIODevice::WriteOnly | QIODevice::NewOnly))
     {
         // download is in progress somewhere else
         // main file will already exist by the end of the download
-        displayLabel->setText("[BUSY] " + display);
+        this->setStatus(CLEStatus::PENDING, "BUSY");
         QTimer *timer = new QTimer(this);
         connect(timer, &QTimer::timeout, timer, [this, timer]()
                 {
             if (!lockFile.open(QIODevice::WriteOnly | QIODevice::NewOnly)) return;
-            displayLabel->setText("[DOWN] " + display);
+            this->setStatus(CLEStatus::SUCCESS, "DOWN");
             lockFile.close();
             lockFile.remove();
             downloaded();
@@ -82,7 +82,7 @@ void DeployListElement::run()
         // lock is unnecessary
         lockFile.close();
         lockFile.remove();
-        displayLabel->setText("[DOWN] " + display);
+        this->setStatus(CLEStatus::SUCCESS, "DOWN");
         downloaded();
         return;
     }
@@ -93,7 +93,8 @@ void DeployListElement::run()
 
 void DeployListElement::onErrorOccured(QNetworkReply::NetworkError e)
 {
-    displayLabel->setText("[ERROR] " + display);
+    qDebug() << e;
+    this->setStatus(CLEStatus::FAIL, "NETWORK ERROR");
     file.close();
     file.remove();
     lockFile.close();
@@ -112,7 +113,8 @@ void DeployListElement::onDownloadProgress(qint64 read, qint64 total)
 
 void DeployListElement::onFinished()
 {
-    displayLabel->setText("[DOWN] " + display);
+    qDebug() << "Finished " << reply->qReply->url();
+    this->setStatus(CLEStatus::SUCCESS, "DOWN");
     file.write(reply->qReply->readAll());
     file.close();
     lockFile.close();
@@ -131,7 +133,7 @@ void DeployListElement::downloaded()
         }
         catch (const ZipException &e)
         {
-            displayLabel->setText("[ERROR] " + display);
+            this->setStatus(CLEStatus::FAIL, "ZIP ERROR");
             file.remove();
             emit done();
             return;
@@ -174,7 +176,7 @@ void DeployListElement::downloaded()
             file.copy(directory + "/" + cacheFilename);
         }
     }
-    displayLabel->setText("[DONE] " + display);
+    this->setStatus(CLEStatus::SUCCESS, "DONE");
     emit done();
 }
 
@@ -234,7 +236,7 @@ void DeployListElement::sendFile(const QString &source, const QString &dest)
     }
     catch (const SshError &e)
     {
-        displayLabel->setText("[ERROR] " + display);
+        this->setStatus(CLEStatus::FAIL, "SSH ERROR");
         emit done();
         return;
     }

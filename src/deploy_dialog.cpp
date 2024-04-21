@@ -20,14 +20,11 @@ DeployDialog::DeployDialog(QWidget *parent)
       this->apply(); });
   projectCCB = new CoolerComboBox(ui->labelProject, ui->comboBoxProject, this);
   branchCCB = new CoolerComboBox(ui->labelBranch, ui->comboBoxBranch, this);
-  pipelineCCB = new CoolerComboBox(ui->labelPipeline, ui->comboBoxPipeline, this);
   jobCCB = new CoolerComboBox(ui->labelJob, ui->comboBoxJob, this);
   machineCCB = new CoolerComboBox(ui->labelMachine, ui->comboBoxMachine, this);
   directoryCCB = new CoolerComboBox(ui->labelDirectory, ui->comboBoxDirectory, this, true);
   connect(projectCCB, &CoolerComboBox::updated, this, &DeployDialog::projectSelected);
   connect(branchCCB, &CoolerComboBox::updated, this, &DeployDialog::branchSelected);
-  connect(pipelineCCB, &CoolerComboBox::updated, this, &DeployDialog::pipelineSelected);
-  connect(jobCCB, &CoolerComboBox::updated, this, &DeployDialog::jobSelected);
   connect(machineCCB, &CoolerComboBox::updated, this, &DeployDialog::machineSelected);
   connect(directoryCCB, &CoolerComboBox::updated, this, &DeployDialog::directorySelected);
   connect(ui->buttonSelectDir, &QPushButton::clicked, this, &DeployDialog::pathSelectClicked);
@@ -41,7 +38,6 @@ DeployDialog::~DeployDialog()
     delete ssh;
   delete projectCCB;
   delete branchCCB;
-  delete pipelineCCB;
   delete jobCCB;
   delete machineCCB;
   delete directoryCCB;
@@ -77,7 +73,6 @@ void DeployDialog::projectSelected(const QString &newText)
 {
   comboSetEnabled(false);
   branchCCB->clearItems();
-  pipelineCCB->clearItems();
   jobCCB->clearItems();
   ApiReply *reply = api.getBranches(projectCCB->getSelectedItemId());
   connect(reply, &ApiReply::branchesReady, reply, [this, reply](QList<QString> &branches)
@@ -95,13 +90,12 @@ void DeployDialog::projectSelected(const QString &newText)
 void DeployDialog::branchSelected(const QString &newText)
 {
   comboSetEnabled(false);
-  pipelineCCB->clearItems();
   jobCCB->clearItems();
-  ApiReply *reply = api.getPipelines(projectCCB->getSelectedItemId(), branchCCB->getSelectedItem());
-  connect(reply, &ApiReply::pipelinesReady, reply, [this, reply](QMap<QString, QString> &pipelines)
+  ApiReply *reply = api.getJobs(projectCCB->getSelectedItemId(), branchCCB->getSelectedItem());
+  connect(reply, &ApiReply::jobsReady, reply, [this, reply](QList<QString> &jobs)
           {
             comboSetEnabled(true);
-            pipelineCCB->updateItems(pipelines); // triggers shouldUpdate()
+            jobCCB->updateItems(jobs); // triggers shouldUpdate()
             reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
           {
@@ -109,25 +103,6 @@ void DeployDialog::branchSelected(const QString &newText)
     comboSetEnabled(true);
     reply->deleteLater(); });
 }
-
-void DeployDialog::pipelineSelected(const QString &newText)
-{
-  comboSetEnabled(false);
-  jobCCB->clearItems();
-  ApiReply *reply = api.getJobs(projectCCB->getSelectedItemId(), pipelineCCB->getSelectedItemId());
-  connect(reply, &ApiReply::jobsReady, reply, [this, reply](QMap<QString, QString> &jobs)
-          {
-            comboSetEnabled(true);
-            jobCCB->updateItems(jobs); // triggers shouldUpdate()
-            reply->deleteLater(); });
-  connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
-          {
-    pipelineCCB->onError();
-    comboSetEnabled(true);
-    reply->deleteLater(); });
-}
-
-void DeployDialog::jobSelected(const QString &newText) {}
 
 void DeployDialog::machineSelected(const QString &newText)
 {
@@ -219,13 +194,11 @@ void DeployDialog::dirSaveChecked(bool state)
 QJsonObject DeployDialog::getData()
 {
   QJsonObject temp;
+  temp["name"] = ui->lineEditName->text();
   temp["project"] = projectCCB->getSelectedItemId();
   temp["projectName"] = projectCCB->getSelectedItem();
   temp["branch"] = branchCCB->getSelectedItem();
-  temp["pipeline"] = pipelineCCB->getSelectedItemId();
-  temp["pipelineName"] = pipelineCCB->getSelectedItem();
-  temp["job"] = jobCCB->getSelectedItemId();
-  temp["jobName"] = jobCCB->getSelectedItem();
+  temp["job"] = jobCCB->getSelectedItem();
   temp["file"] = ui->lineEditFile->text();
   temp["machine"] = machineCCB->getSelectedItem();
   temp["directory"] = directoryCCB->getSelectedItem();
@@ -234,11 +207,11 @@ QJsonObject DeployDialog::getData()
   temp["createDir"] = ui->checkBox->isChecked();
   temp["cachePath"] = "cache/" + temp["project"].toString() + "_" + temp["job"].toString() + "/" +
                       (temp["file"].toString().isEmpty() ? "artifacts.zip" : temp["file"].toString());
-  if (!ui->lineEditName->text().isEmpty())
-    temp["display"] = ui->lineEditName->text();
+  if (!temp["name"].toString().isEmpty())
+    temp["display"] = temp["name"].toString();
   else
     temp["display"] = temp["projectName"].toString() + "/" + temp["branch"].toString() +
-                      "/" + temp["jobName"].toString() + " (" +
+                      "/" + temp["job"].toString() + " (" +
                       (temp["file"].toString().isEmpty() ? "*" : temp["file"].toString()) +
                       ") -> " + temp["machine"].toString() +
                       "(" + temp["directory"].toString() + ")";
@@ -249,7 +222,6 @@ bool DeployDialog::verifyData(const QJsonObject &data, bool visual)
 {
   return !data["project"].toString().isEmpty() &&
          !data["branch"].toString().isEmpty() &&
-         !data["pipeline"].toString().isEmpty() &&
          !data["job"].toString().isEmpty() &&
          !data["machine"].toString().isEmpty() &&
          !data["directory"].toString().isEmpty();
@@ -259,7 +231,6 @@ void DeployDialog::clearFileds()
 {
   projectCCB->clear();
   branchCCB->clear();
-  pipelineCCB->clear();
   jobCCB->clear();
   machineCCB->clear();
   directoryCCB->clear();
@@ -278,10 +249,9 @@ void DeployDialog::show(const QJsonObject &data)
 {
   this->init();
   branchCCB->setSelectedItem(data["branch"].toString());
-  pipelineCCB->setSelectedItem(data["pipelineName"].toString());
-  jobCCB->setSelectedItem(data["jobName"].toString());
+  jobCCB->setSelectedItem(data["job"].toString());
   ui->lineEditFile->setText(data["file"].toString());
-  ui->lineEditName->setText(data["display"].toString());
+  ui->lineEditName->setText(data["name"].toString());
 
   // using direct input to trigger shouldUpdate() slot and request items (should use cache)
   ui->comboBoxProject->setEditText(data["projectName"].toString());

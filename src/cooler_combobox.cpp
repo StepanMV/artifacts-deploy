@@ -38,9 +38,11 @@ void CoolerComboBox::clear()
 void CoolerComboBox::updateItems(const QMap<QString, QString> &idToItem,
                                  bool keepCurrent)
 {
+  QList<QString> items = idToItem.values();
+  items.sort();
   updateBlock = true;
   this->idToItem = idToItem;
-  this->items = idToItem.values();
+  this->items = items;
   QString tempStr = comboBox->currentText();
   comboBox->clear();
   comboBox->addItems(items);
@@ -53,6 +55,7 @@ void CoolerComboBox::updateItems(const QMap<QString, QString> &idToItem,
 void CoolerComboBox::updateItems(const QList<QString> &items,
                                  bool keepCurrent)
 {
+  const_cast<QList<QString> &>(items).sort();
   updateBlock = true;
   this->items = items;
   this->idToItem.clear();

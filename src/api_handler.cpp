@@ -63,82 +63,32 @@ ApiReply *ApiHandler::getBranches(const QString &projectID)
   return reply;
 }
 
-ApiReply *ApiHandler::getPipelines(const QString &projectID, const QString &branchName)
+ApiReply *ApiHandler::getJobs(const QString &projectID, const QString &branchName)
 {
-  QString pipelineUrl = apiURL + "/projects/" + projectID +
-                        "/pipelines?ref=" + branchName + "&status=success";
-  QString commitsUrl = apiURL + "/projects/" + projectID +
-                       "/repository/commits/?ref_name=" + branchName;
-
-  std::map<std::string, std::string> *pipelineIdToSha = new std::map<std::string, std::string>();
-  std::map<std::string, std::string> *commitHashToDescription = new std::map<std::string, std::string>();
-
-  ApiReply *shaReply = makeRequest(pipelineUrl, idToToken[projectID]);
-  ApiReply *commitsReply = makeRequest(commitsUrl, idToToken[projectID]);
-  qDebug("Constructed requests");
-
-  connect(shaReply, &ApiReply::dataReady, shaReply, [this, pipelineIdToSha, shaReply](QByteArray &data)
-          {
-    QJsonArray pipelineArray = QJsonDocument::fromJson(data).array();
-    for (const QJsonValue &val : pipelineArray) {
-      std::string id = QString::number((size_t) val["id"].toDouble()).toStdString();
-      pipelineIdToSha->emplace(id, val["sha"].toString().toStdString());
-    }
-    qDebug() << "Inflated SHA to size: " + QString::number(pipelineIdToSha->size());
-    emit shaReply->pipelinesCheck(); });
-
-  connect(commitsReply, &ApiReply::dataReady, shaReply, [this, commitHashToDescription, commitsReply, shaReply](QByteArray &data)
-          {
-    QJsonArray commitsArray = QJsonDocument::fromJson(data).array();
-    for (const QJsonValue &val : commitsArray) {
-      std::string hash = val["id"].toString().toStdString();
-      commitHashToDescription->emplace(hash, val["title"].toString().toStdString());
-    }
-    qDebug() << "Inflated commits to size: " + QString::number(commitHashToDescription->size());
-    emit shaReply->pipelinesCheck(); });
-
-  connect(commitsReply, &ApiReply::errorOccurred, shaReply, [this, commitsReply, shaReply](QNetworkReply::NetworkError e)
-          { emit shaReply->errorOccurred(e); });
-
-  connect(shaReply, &ApiReply::pipelinesCheck, shaReply, [this, pipelineIdToSha, commitHashToDescription, shaReply, commitsReply]()
-          { 
-    if (!commitsReply->qReply->isFinished() || !shaReply->qReply->isFinished()) return;
-    QMap<QString, QString> pipelineIdToCommit;
-    for (auto it = pipelineIdToSha->begin(); it != pipelineIdToSha->end(); ++it) {
-      QString key = QString::fromStdString(it->first);
-      QString value = QString::fromStdString(commitHashToDescription->at(it->second));
-      pipelineIdToCommit.insert(key, "#" + key + " " + value);
-    }
-    emit shaReply->pipelinesReady(pipelineIdToCommit);
-    delete commitHashToDescription;
-    delete pipelineIdToSha;
-    commitsReply->deleteLater(); });
-  return shaReply;
-}
-
-ApiReply *ApiHandler::getJobs(const QString &projectID, const QString &pipelineID)
-{
-  QString url = apiURL + "/projects/" + projectID + "/pipelines/" + pipelineID + "/jobs?scope[]=success";
+  QString url = apiURL + "/projects/" + projectID + "/jobs/?scope[]=success";
 
   ApiReply *reply = makeRequest(url, idToToken[projectID]);
-  connect(reply, &ApiReply::dataReady, reply, [this, projectID, reply](QByteArray &data)
+  connect(reply, &ApiReply::dataReady, reply, [this, projectID, branchName, reply](QByteArray &data)
           {
-    QMap<QString, QString> jobIdToName;
+    QList<QString> jobNames;
     QJsonArray array = QJsonDocument::fromJson(data).array();
-    for (auto it = array.begin(); it != array.end(); ++it) {
-      QJsonObject val = it->toObject();
-      QString id = QString::number((size_t) val.value("id").toDouble());
-      jobIdToName[id] = val.value("name").toString();
+    for (const QJsonValue &val : array) {
+      QString name = val["name"].toString();
+      QString branch = val["ref"].toString();
+      if (branch == branchName && !jobNames.contains(name))
+        jobNames.append(name);
     }
-    emit reply->jobsReady(jobIdToName); });
+    emit reply->jobsReady(jobNames); });
   return reply;
 }
 
-ApiReply *ApiHandler::getArtifacts(const QString &projectID, const QString &jobID, const QString &path)
+ApiReply *ApiHandler::getArtifacts(const QString &projectID, const QString &branchName, const QString &jobName, const QString &path)
 {
-  QString url = apiURL + "/projects/" + projectID + "/jobs/" + jobID + "/artifacts";
-  if (!path.isEmpty())
-    url += "/" + path;
+  QString url;
+  if (path.isEmpty())
+    url = apiURL + "/projects/" + projectID + "/jobs/artifacts/" + branchName + "/download?job=" + jobName;
+  else 
+    url = apiURL + "/projects/" + projectID + "/jobs/artifacts/" + branchName + "/raw/" + path + "?job=" + jobName;
   ApiReply *reply = makeRequest(url, idToToken[projectID]);
   reply->qReply->disconnect();
   return reply;
@@ -172,10 +122,16 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
           {
     if (reply->qReply->error() != QNetworkReply::NoError)
     {
+      emit reply->errorOccurred(reply->qReply->error());
       return;
     }
-    QByteArray data = reply->qReply->readAll();
     qDebug() << "Constructor: " << reply->qReply->url() << "\n"; 
+    QByteArray data = reply->qReply->readAll();
+    if (data.isEmpty())
+    {
+      emit reply->errorOccurred(QNetworkReply::ContentNotFoundError);
+      return;
+    }
     cache[authUrl] = data;
     emit reply->dataReady(data); });
   return reply;

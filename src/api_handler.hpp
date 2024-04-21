@@ -18,9 +18,8 @@ public:
     ApiReply *checkURL(const QString &url);
     ApiReply *addToken(const QString &token);
     ApiReply *getBranches(const QString &projectID);
-    ApiReply *getPipelines(const QString &projectID, const QString &branchName);
-    ApiReply *getJobs(const QString &projectID, const QString &pipelineID);
-    ApiReply *getArtifacts(const QString &projectID, const QString &jobID, const QString &path = "");
+    ApiReply *getJobs(const QString &projectID, const QString &branchName);
+    ApiReply *getArtifacts(const QString &projectID, const QString &branchName, const QString &jobName, const QString &path = "");
 
     static void setURL(const QString &url);
     static const QString &getURL();

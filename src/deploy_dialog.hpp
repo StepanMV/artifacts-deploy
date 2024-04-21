@@ -33,8 +33,6 @@ public:
 private slots:
   void projectSelected(const QString &newText);
   void branchSelected(const QString &newText);
-  void pipelineSelected(const QString &newText);
-  void jobSelected(const QString &newText);
   void machineSelected(const QString &newText);
   void directorySelected(const QString &newText);
 
@@ -49,7 +47,6 @@ private:
   Ui::DeployDialog *ui;
   CoolerComboBox *projectCCB;
   CoolerComboBox *branchCCB;
-  CoolerComboBox *pipelineCCB;
   CoolerComboBox *jobCCB;
   CoolerComboBox *machineCCB;
   CoolerComboBox *directoryCCB;

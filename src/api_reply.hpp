@@ -13,11 +13,10 @@ public:
 
 signals:
     void dataReady(QByteArray &data);
-    void errorOccurred(QNetworkReply::NetworkError e);
+    void errorOccurred(const QNetworkReply::NetworkError &error);
     
     void branchesReady(QList<QString>& branches);
-    void pipelinesReady(QMap<QString, QString>& pipelines);
-    void jobsReady(QMap<QString, QString>& jobs);
+    void jobsReady(QList<QString>& jobs);
 
     void pipelinesCheck();
 };
