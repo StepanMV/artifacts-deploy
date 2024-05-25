@@ -63,7 +63,7 @@ jobs:
         elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
           sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
         fi
-        sudo apt-get install -y libssh-dev zlib bzip2 zstd openssl gnutls libzip-dev
+        sudo apt-get install -y libssh-dev libzip-dev zipcmp zipmerge ziptool
 
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
