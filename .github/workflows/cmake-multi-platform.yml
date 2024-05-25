@@ -77,6 +77,18 @@ jobs:
         cache: 'false'
         setup-python: 'true'
         set-env: 'true'
+
+    - name: Install libssh and libzip on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        .\vcpkg\vcpkg.exe install libssh
+        .\vcpkg\vcpkg.exe install libzip
+        echo "${{ github.workspace }}\vcpkg\installed\bin" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\vcpkg\installed\include" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\vcpkg\installed\lib" >> $GITHUB_PATH
         
     - name: Configure CMake
       run: >
@@ -89,3 +101,10 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        path: 
+          ${{ steps.strings.outputs.build-output-dir }}/artifacts-deploy
+        if-no-files-found: error
