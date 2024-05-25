@@ -74,7 +74,7 @@ jobs:
         target: 'desktop'
         arch: 'win64_msvc2019_64'
         dir: '${{ github.workspace }}/Qt/'
-        modules: 'qtcharts qtwebengine qtuitools'
+        modules: 'all'
         tools: 'true'
         cache: 'false'
         setup-python: 'true'
@@ -86,7 +86,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -Dqt_version_major_MAJOR=${{ matrix.qt_version_major }}
+        -DQT_VERSION_MAJOR=${{ matrix.qt_version_major }}
         -S ${{ github.workspace }}
 
     - name: Build
