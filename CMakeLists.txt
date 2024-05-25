@@ -9,8 +9,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Network UiTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network UiTools)
+# Add an option to specify the Qt version
+option(QT_VERSION_MAJOR "Specify the major version of Qt to use (5 or 6)" 5)
+
+# Find the specified Qt version
+if(QT_VERSION_MAJOR EQUAL 5)
+    find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Network UiTools)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Network UiTools)
+elseif(QT_VERSION_MAJOR EQUAL 6)
+    find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network UiTools)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Network UiTools)
+else()
+    message(FATAL_ERROR "Unsupported Qt version: ${QT_VERSION_MAJOR}. Please specify 5 or 6.")
+endif()
+
 find_package(libssh REQUIRED)
 find_package(libzip REQUIRED)
 
@@ -40,11 +52,10 @@ target_link_libraries(artifacts-deploy PRIVATE
     Qt${QT_VERSION_MAJOR}::UiTools
     ssh zip)
 
-
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
+if(${QT_VERSION_MAJOR} VERSION_LESS 6.1)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.artifacts-deploy)
 endif()
 set_target_properties(artifacts-deploy PROPERTIES
