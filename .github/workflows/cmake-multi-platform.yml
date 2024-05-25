@@ -52,6 +52,7 @@ jobs:
           echo "qt-version=5.15.2" >> "$GITHUB_OUTPUT"
         elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
           echo "qt-version=6.2.0" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Install dependencies on Ubuntu
       if: matrix.os == 'ubuntu-latest'
