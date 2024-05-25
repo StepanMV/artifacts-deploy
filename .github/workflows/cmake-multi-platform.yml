@@ -56,9 +56,9 @@ jobs:
         if [[ "${{ matrix.qt_version }}" == "5" ]]; then
           sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qttools5-dev
         elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
-          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev
+          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
         fi
-        sudo apt-get install libssh-dev libzip-dev
+        sudo apt-get install libssh-dev zipcmp libzip-dev
 
     - name: Install Python on Windows
       if: matrix.os == 'windows-latest'
@@ -80,9 +80,10 @@ jobs:
         elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
           aqt install-qt windows desktop 6.2.4 win64_msvc2019_64
         fi
+        ls ${{ runner.temp }}/Qt
       env:
         QTDIR: ${{ runner.temp }}/Qt
-        PATH: ${{ runner.temp }}/Qt/qt${{ matrix.qt_version }}/bin:${{ env.PATH }}
+        PATH: ${{ runner.temp }}/Qt/Qt${{ matrix.qt_version }}/bin:${{ env.PATH }}
 
     - name: Configure CMake
       run: >
