@@ -49,27 +49,41 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-    - name: Install Qt5 on Ubuntu
-      if: matrix.os == 'ubuntu-latest' && matrix.qt_version == 'qt5'
+    - name: Install dependencies on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
+        if [[ "${{ matrix.qt_version }}" == "qt5" ]]; then
+          sudo apt-get install -y qt5-default
+        elif [[ "${{ matrix.qt_version }}" == "qt6" ]]; then
+          sudo apt-get install -y qt6-default
+        fi
+        sudo apt-get install libssh libzip
 
-    - name: Install Qt6 on Ubuntu
-      if: matrix.os == 'ubuntu-latest' && matrix.qt_version == 'qt6'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y qt6-base-dev qtchooser qt6-qmake qt6-base-dev-tools
+    - name: Install Python on Windows
+      if: matrix.os == 'windows-latest'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-    - name: Install Qt5 on Windows
-      if: matrix.os == 'windows-latest' && matrix.qt_version == 'qt5'
+    - name: Install aqtinstall on Windows
+      if: matrix.os == 'windows-latest'
       run: |
-        choco install qt5
+        python -m pip install aqtinstall
 
-    - name: Install Qt6 on Windows
-      if: matrix.os == 'windows-latest' && matrix.qt_version == 'qt6'
+    - name: Install Qt on Windows
+      if: matrix.os == 'windows-latest'
       run: |
-        choco install qt6
+        aqt list-qt windows desktop --arch 5.15.13
+        aqt list-qt windows desktop --arch 6.7.0
+        if [[ "${{ matrix.qt_version }}" == "qt5" ]]; then
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
+        elif [[ "${{ matrix.qt_version }}" == "qt6" ]]; then
+          aqt install-qt windows desktop 6.2.4 win64_msvc2019_64
+        fi
+      env:
+        QTDIR: ${{ runner.temp }}/Qt
+        PATH: ${{ runner.temp }}/Qt/${{ matrix.qt_version }}/bin:${{ env.PATH }}
 
     - name: Configure CMake
       run: >
