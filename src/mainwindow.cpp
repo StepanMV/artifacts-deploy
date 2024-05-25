@@ -8,12 +8,14 @@
 #include <QFileDialog>
 #include <QUiLoader>
 #include <QJsonArray>
+#include "logger.hpp"
+#include <filesystem>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), api(this)
 {
   ui->setupUi(this);
-  this->tokenList = new ComplexList("projects", ui->tokenList, new TokenDialog(this), this);
+  this->tokenList = new ComplexList("token", ui->tokenList, new TokenDialog(this), this);
   this->sshList = new ComplexList("ssh", ui->sshList, new SshDialog(this), this);
   this->deployList = new DeployList(ui->deployList, new DeployDialog(this), this);
   connect(ui->apiLineEdit, &QLineEdit::editingFinished, this, &MainWindow::updateApiUrl);
@@ -25,7 +27,11 @@ MainWindow::MainWindow(QWidget *parent)
   connect(ui->loadButton, &QPushButton::clicked, this, &MainWindow::importClicked);
   connect(ui->saveButton, &QPushButton::clicked, this, &MainWindow::exportClicked);
   connect(this, &MainWindow::apiUpdated, this, &MainWindow::updateUserToken);
+  connect(ui->apiButtonUpdate, &QPushButton::clicked, this, &MainWindow::updateApiUrl);
+  connect(ui->userTokenButtonUpdate, &QPushButton::clicked, this, &MainWindow::updateUserToken);
   import("data.json");
+  std::filesystem::create_directory("logs");
+  Logger::setLogPath("logs/log_" + QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss") + ".txt");
 }
 
 MainWindow::~MainWindow()
@@ -59,7 +65,6 @@ void MainWindow::updateUserToken()
   ApiReply *reply = api.addToken(token);
   connect(reply, &ApiReply::dataReady, reply, [this, token, label = ui->userTokenLabel, reply](const QByteArray &data)
           {
-            qDebug() << data;
     DataManager::setUserToken(token);
     label->setStyleSheet("color: green;");
     reply->deleteLater(); });
@@ -99,14 +104,13 @@ void MainWindow::import(const QString &filename)
   ui->userTokenLineEdit->setText(DataManager::getData().value("userToken").toString());
   emit ui->apiLineEdit->editingFinished();
 
-  for (const QJsonValue &val : DataManager::getData().value("projects").toArray())
+  for (const QJsonValue &val : DataManager::getData().value("token").toArray())
   {
     ApiReply *reply = api.addToken(val.toObject().value("token").toString());
     connect(reply, &ApiReply::dataReady, reply, [this, reply](const QByteArray &data)
             { reply->deleteLater(); });
   }
-  tokenList->init(DataManager::getData().value("projects").toArray());
+  tokenList->init(DataManager::getData().value("token").toArray());
   sshList->init(DataManager::getData().value("ssh").toArray());
   deployList->init(DataManager::getData().value("deploy").toArray());
-  qDebug() << DataManager::getData();
 }

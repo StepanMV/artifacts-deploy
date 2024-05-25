@@ -28,7 +28,7 @@
            <widget class="QLabel" name="labelName">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>120</width>
               <height>0</height>
              </size>
             </property>
@@ -67,7 +67,7 @@
            <widget class="QLabel" name="labelProject">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>120</width>
               <height>0</height>
              </size>
             </property>
@@ -106,7 +106,7 @@
            <widget class="QLabel" name="labelBranch">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>120</width>
               <height>0</height>
              </size>
             </property>
@@ -145,7 +145,7 @@
            <widget class="QLabel" name="labelJob">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>120</width>
               <height>0</height>
              </size>
             </property>
@@ -182,6 +182,12 @@
          <layout class="QHBoxLayout" name="horizontalLayout_8">
           <item>
            <widget class="QLabel" name="labelFile">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
               <width>120</width>
@@ -217,10 +223,10 @@
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Expanding</enum>
+           <enum>QSizePolicy::Policy::Expanding</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -302,26 +308,29 @@
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBoxDirectory">
-            <property name="enabled">
-             <bool>false</bool>
+           <widget class="QLineEdit" name="lineEditDirectory">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="minimumSize">
              <size>
-              <width>300</width>
+              <width>120</width>
               <height>0</height>
              </size>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-            <property name="insertPolicy">
-             <enum>QComboBox::InsertAlphabetically</enum>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="buttonSelectDir">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
              <string>Select</string>
             </property>
@@ -330,16 +339,9 @@
          </layout>
         </item>
         <item>
-         <widget class="QCheckBox" name="checkBox">
-          <property name="text">
-           <string>Create directory</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <spacer name="verticalSpacer_2">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -357,10 +359,10 @@
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
     </widget>
    </item>

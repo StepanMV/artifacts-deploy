@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <fstream>
+#include <sstream>
 
 SshError::SshError() : std::runtime_error("") {}
 
@@ -22,17 +23,22 @@ SSHConnection::SSHConnection(const std::string &ip, size_t port, const std::stri
     this->keyPath = keyPath;
     this->keyPass = keyPass;
     this->session = connect();
+    this->sftpSession = connectSftp();
 }
 
 SSHConnection::SSHConnection(const std::string &ip, size_t port, const std::string &user, const std::string &password) : SSHConnection(ip, port, user)
 {
     this->password = password;
     this->session = connect();
+    this->sftpSession = connectSftp();
 }
 
 SSHConnection::~SSHConnection()
 {
-    
+    if (sftpSession)
+    {
+        sftp_free(sftpSession);
+    }
     if (session && ssh_is_connected(session))
     {
         ssh_disconnect(session);
@@ -82,6 +88,23 @@ ssh_session SSHConnection::connect()
     return sshSession;
 }
 
+sftp_session SSHConnection::connectSftp()
+{
+    sftp_session sftpSession = sftp_new(session);
+    if (sftpSession == NULL)
+    {
+        throw SshError();
+    }
+
+    int code = sftp_init(sftpSession);
+    if (code != SSH_OK)
+    {
+        throw SshError();
+    }
+
+    return sftpSession;
+}
+
 QString SSHConnection::sendCommand(const std::string &command)
 {
     ssh_channel channel = ssh_channel_new(session);
@@ -128,28 +151,37 @@ QString SSHConnection::sendCommand(const std::string &command)
 
 void SSHConnection::sendFile(const std::string &source, const std::string &dest)
 {
-    this->sendCommand("mkdir -p " + dest.substr(0, dest.rfind("/")));
-    sftp_session sftp;
+    std::istringstream ss(dest.substr(0, dest.rfind("/")));
+    std::string token;
+    std::string concatToken;
     int rc;
 
-    sftp = sftp_new(session);
-    if (sftp == NULL)
+    while (std::getline(ss, token, '/'))
     {
-        throw SshError();
+        concatToken += token;
+        rc = sftp_mkdir(this->sftpSession, concatToken.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+        if (rc != SSH_OK)
+        {
+            if (sftp_get_error(this->sftpSession) != SSH_FX_FILE_ALREADY_EXISTS)
+            {
+                throw SshError();
+            }
+        }
+        concatToken += "/";
     }
 
-    rc = sftp_init(sftp);
-    if (rc != SSH_OK)
+
+    struct stat fileStat;
+    if (stat(source.c_str(), &fileStat) < 0)
     {
-        sftp_free(sftp);
         throw SshError();
     }
 
     int access_type = O_WRONLY | O_CREAT | O_TRUNC;
     sftp_file file;
 
-    file = sftp_open(sftp, dest.c_str(),
-                     access_type, S_IRWXU);
+    file = sftp_open(this->sftpSession, dest.c_str(),
+                     access_type, fileStat.st_mode);
     if (file == NULL)
     {
         throw SshError();
@@ -171,13 +203,11 @@ void SSHConnection::sendFile(const std::string &source, const std::string &dest)
             }
         }
     }
-
     rc = sftp_close(file);
     if (rc != SSH_OK)
     {
         throw SshError();
     }
-    sftp_free(sftp);
 }
 
 int SSHConnection::verifyHost(ssh_session session)

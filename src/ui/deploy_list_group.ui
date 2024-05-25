@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SshElement</class>
- <widget class="QMainWindow" name="SshElement">
+ <class>DeployElement</class>
+ <widget class="QMainWindow" name="DeployElement">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>45</height>
+    <height>43</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -34,6 +34,38 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
+     <widget class="QPushButton" name="showHideButton">
+      <property name="maximumSize">
+       <size>
+        <width>140</width>
+        <height>35</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Show/Hide</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="addButton">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>35</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>➕</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QPushButton" name="deleteButton">
       <property name="enabled">
        <bool>true</bool>
@@ -50,7 +82,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="editButton">
+     <widget class="QPushButton" name="runButton">
       <property name="enabled">
        <bool>true</bool>
       </property>
@@ -61,23 +93,7 @@
        </size>
       </property>
       <property name="text">
-       <string extracomment="edit">⚒️</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="duplicateButton">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>35</width>
-        <height>35</height>
-       </size>
-      </property>
-      <property name="text">
-       <string extracomment="copy">📄</string>
+       <string extracomment="run">▶️</string>
       </property>
      </widget>
     </item>
@@ -91,9 +107,6 @@
         <width>16777215</width>
         <height>35</height>
        </size>
-      </property>
-      <property name="text">
-       <string>(new)</string>
       </property>
      </widget>
     </item>

@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES #[[Qt5]] Qt6 REQUIRED COMPONENTS Widgets Network UiTools)
+find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Network UiTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network UiTools)
 find_package(libssh REQUIRED)
 find_package(libzip REQUIRED)
@@ -29,8 +29,7 @@ else()
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(artifacts-deploy ${PROJECT_SOURCES}
-            deploy_element.ui)
+        add_executable(artifacts-deploy ${PROJECT_SOURCES})
     endif()
 
 endif()

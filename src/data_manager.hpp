@@ -16,6 +16,7 @@ public:
     static void addCoolerList(const QString& key);
 
     static void appendCoolerList(const QString& key, const QJsonObject& data);
+    static void insertCoolerList(const QString& key, const QJsonObject& data, size_t index);
     static void editCoolerList(const QString& key, size_t index, const QJsonObject& data);
 
     static void clearCoolerList(const QString& key);

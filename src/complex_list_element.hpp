@@ -28,6 +28,9 @@ public:
     QPushButton *getButton(const QString &name);
     QWidget *getWidget();
 
+signals:
+    void stateChanged(CLEStatus status, const QString &message);
+
 protected:
     QLabel *displayLabel;
     QJsonObject data;

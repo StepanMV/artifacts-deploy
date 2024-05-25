@@ -29,6 +29,13 @@ void DataManager::appendCoolerList(const QString &key, const QJsonObject &data)
     DataManager::data[key] = DataManager::data.value(key).toArray() + data;
 }
 
+void DataManager::insertCoolerList(const QString &key, const QJsonObject &data, size_t index)
+{
+    auto temp = DataManager::data.value(key).toArray();
+    temp.insert(index, data);
+    DataManager::data[key] = temp;
+}
+
 void DataManager::editCoolerList(const QString &key, size_t index, const QJsonObject &data)
 {
     auto temp = DataManager::data.value(key).toArray();
@@ -43,7 +50,6 @@ void DataManager::clearCoolerList(const QString &key)
 
 void DataManager::removeFromCoolerList(const QString &key, size_t index)
 {
-    qDebug() << index << "\n" << data;
     auto temp = data.value(key).toArray();
     temp.removeAt(index);
     data[key] = temp;
@@ -112,7 +118,6 @@ SSHConnection *DataManager::getConnection(const QString &name)
 
 void DataManager::dumpData(const QString &path)
 {
-    qDebug() << "Export: " << data;
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return;

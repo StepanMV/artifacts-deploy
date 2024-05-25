@@ -50,7 +50,6 @@ ApiReply *ApiHandler::getBranches(const QString &projectID)
 
   QString url = apiURL + "/projects/" + projectID + "/repository/branches";
   ApiReply *reply = makeRequest(url, idToToken[projectID]);
-  qDebug() << "CONNECTING\n";
   connect(reply, &ApiReply::dataReady, reply, [this, projectID, reply](QByteArray &data)
           {
     QList<QString> branchNames;
@@ -71,13 +70,20 @@ ApiReply *ApiHandler::getJobs(const QString &projectID, const QString &branchNam
   connect(reply, &ApiReply::dataReady, reply, [this, projectID, branchName, reply](QByteArray &data)
           {
     QList<QString> jobNames;
+    QList<QString> commits;
     QJsonArray array = QJsonDocument::fromJson(data).array();
     for (const QJsonValue &val : array) {
       QString name = val["name"].toString();
       QString branch = val["ref"].toString();
       if (branch == branchName && !jobNames.contains(name))
+      {
+        QString commitId = val["commit"]["id"].toString();
+        commits.append(commitId);
         jobNames.append(name);
+      }
+        
     }
+    emit reply->commitsReady(commits);
     emit reply->jobsReady(jobNames); });
   return reply;
 }
@@ -87,7 +93,7 @@ ApiReply *ApiHandler::getArtifacts(const QString &projectID, const QString &bran
   QString url;
   if (path.isEmpty())
     url = apiURL + "/projects/" + projectID + "/jobs/artifacts/" + branchName + "/download?job=" + jobName;
-  else 
+  else
     url = apiURL + "/projects/" + projectID + "/jobs/artifacts/" + branchName + "/raw/" + path + "?job=" + jobName;
   ApiReply *reply = makeRequest(url, idToToken[projectID]);
   reply->qReply->disconnect();
@@ -125,7 +131,6 @@ ApiReply *ApiHandler::makeRequest(const QString &url, const QString &token)
       emit reply->errorOccurred(reply->qReply->error());
       return;
     }
-    qDebug() << "Constructor: " << reply->qReply->url() << "\n"; 
     QByteArray data = reply->qReply->readAll();
     if (data.isEmpty() || (!data.startsWith("{") && !data.startsWith("[")) || data == "[]" || data == "{}")
     {

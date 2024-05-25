@@ -46,85 +46,18 @@ bool SshDialog::verifyData(const QJsonObject &data, bool visual)
 {
     if (data["ip"].toString().isEmpty())
     {
-        if (visual)
-            ui->labelIp->setStyleSheet("color: red;");
         return false;
     }
-    else if (visual)
-        ui->labelIp->setStyleSheet("color: green;");
     if (data["port"].toInt() == 0)
     {
-        if (visual)
-            ui->labelPort->setStyleSheet("color: red;");
         return false;
     }
-    else if (visual)
-        ui->labelPort->setStyleSheet("color: green;");
     if (data["user"].toString().isEmpty())
     {
-        if (visual)
-            ui->labelUser->setStyleSheet("color: red;");
         return false;
     }
-    else if (visual)
-        ui->labelUser->setStyleSheet("color: green;");
     if (data["keyPath"].toString().isEmpty() && data["password"].toString().isEmpty())
     {
-        if (visual)
-        {
-            ui->labelKeyPath->setStyleSheet("color: red;");
-            ui->labelKeyPass->setStyleSheet("color: red;");
-            ui->labelPassword->setStyleSheet("color: red;");
-        }
-        return false;
-    }
-    else if (visual)
-    {
-        ui->labelKeyPath->setStyleSheet("color: green;");
-        ui->labelKeyPass->setStyleSheet("color: green;");
-        ui->labelPassword->setStyleSheet("color: green;");
-    }
-    try
-    {
-        if (data["password"].toString().isEmpty())
-        {
-            SSHConnection(data["ip"].toString().toStdString(), data["port"].toInt(), data["user"].toString().toStdString(),
-                          data["keyPath"].toString().toStdString(), data["keyPass"].toString().toStdString());
-        }
-        else
-        {
-            SSHConnection(data["ip"].toString().toStdString(), data["port"].toInt(), data["user"].toString().toStdString(),
-                          data["password"].toString().toStdString());
-        }
-    }
-    catch (const AllocationError &e)
-    {
-        return false;
-    }
-    catch (const ConnectionError &e)
-    {
-        if (visual)
-        {
-            ui->labelIp->setStyleSheet("color: red;");
-            ui->labelPort->setStyleSheet("color: red;");
-            ui->labelUser->setStyleSheet("color: red;");
-        }
-        return false;
-    }
-    catch (const VerificationError &e)
-    {
-        if (visual)
-            ui->labelIp->setStyleSheet("color: red;");
-        return false;
-    }
-    catch (const AuthenticationError &e)
-    {
-        if (visual)
-        {
-            ui->labelKeyPath->setStyleSheet("color: red;");
-            ui->labelKeyPass->setStyleSheet("color: red;");
-            ui->labelPassword->setStyleSheet("color: red;");
-        }
         return false;
     }
     return true;

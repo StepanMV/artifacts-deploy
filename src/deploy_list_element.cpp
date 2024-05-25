@@ -16,26 +16,39 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <zip.h>
+#include <QSpacerItem>
+#include <QLayout>
+#include <QtConcurrent/QtConcurrent>
+#include <QFutureWatcher>
+#include <thread>
+#include "data_manager.hpp"
 
 namespace fs = std::filesystem;
 
 ZipException::ZipException() : std::runtime_error("") {}
 
-DeployListElement::DeployListElement(const QJsonObject &data, SSHConnection *connection, QWidget *parent)
-    : ComplexListElement(":/ui/deploy_list_element.ui", data, parent), connection(connection)
+int sendFile(const fs::path &src, const fs::path &dest, const QString &machine);
+int unzip(const std::string &cacheDir);
+
+DeployListElement::DeployListElement(const QString &filename, const QJsonObject &data, SSHConnection *connection, QWidget *parent)
+    : ComplexListElement(filename, data, parent), connection(connection)
 {
     this->directory = data["directory"].toString();
-    this->cachePath = data["cachePath"].toString();
+    this->cachePath = "cache/" + data["project"].toString() + "_" + data["job"].toString() + "/" +
+                      (data["file"].toString().isEmpty() ? "artifacts.zip" : data["file"].toString());
     this->display = displayLabel->text();
     this->cacheDir = cachePath.mid(0, cachePath.lastIndexOf('/'));
     this->cachePathLock = cachePath.mid(0, cachePath.lastIndexOf('.')) + ".lock";
     this->file.setFileName(cachePath);
     this->lockFile.setFileName(cachePathLock);
     this->cacheFilename = cachePath.mid(cachePath.lastIndexOf('/') + 1);
+    connect(this, &DeployListElement::done, this, [this]()
+            { watcher.disconnect(this); });
 }
 
 DeployListElement::~DeployListElement()
 {
+    watcher.disconnect(this);
     if (connection)
         delete connection;
 }
@@ -44,7 +57,8 @@ void DeployListElement::setData(const QJsonObject &data)
 {
     ComplexListElement::setData(data);
     this->display = displayLabel->text();
-    this->cachePath = data["cachePath"].toString();
+    this->cachePath = "cache/" + data["project"].toString() + "_" + data["job"].toString() + "/" +
+                      (data["file"].toString().isEmpty() ? "artifacts.zip" : data["file"].toString());
     this->directory = data["directory"].toString();
     this->cacheDir = cachePath.mid(0, cachePath.lastIndexOf('/'));
     this->cachePathLock = cachePath.mid(0, cachePath.lastIndexOf('.')) + ".lock";
@@ -55,8 +69,32 @@ void DeployListElement::setData(const QJsonObject &data)
 
 void DeployListElement::run()
 {
+    if (this->getData()["file"].toString().contains(";"))
+    {
+        QStringList files = this->getData()["file"].toString().split(";");
+        for (size_t i = 0; i < files.size(); i++)
+        {
+            QJsonObject data = this->getData();
+            data["file"] = files[i];
+            auto newEl = new DeployListElement(":/ui/deploy_list_element.ui", data, DataManager::getConnection(data["machine"].toString()), this);
+            connect(newEl, &DeployListElement::done, this, [newEl, this]
+                    { newEl->deleteLater();
+                        countFiles++;
+                        if (countFiles == this->getData()["file"].toString().split(";").size()) {
+                            countFiles = 0;
+                            emit done();
+                        } });
+            connect(newEl, &DeployListElement::stateChanged, this, [newEl, this](CLEStatus status, const QString &message)
+                    { this->setStatus(status, message); });
+            newEl->run();
+        }
+        return;
+    }
     this->reply = api.getArtifacts(data["project"].toString(), data["branch"].toString(), data["job"].toString(), data["file"].toString());
     reply->setParent(this);
+
+    connect(this, &DeployListElement::filesReady, this, &DeployListElement::onFilesReady);
+
     dir.mkpath(cacheDir);
     if (!lockFile.open(QIODevice::WriteOnly | QIODevice::NewOnly))
     {
@@ -67,10 +105,9 @@ void DeployListElement::run()
         connect(timer, &QTimer::timeout, timer, [this, timer]()
                 {
             if (!lockFile.open(QIODevice::WriteOnly | QIODevice::NewOnly)) return;
-            this->setStatus(CLEStatus::SUCCESS, "DOWN");
             lockFile.close();
             lockFile.remove();
-            downloaded();
+            emit filesReady();
             timer->stop();
             timer->deleteLater(); });
         timer->start(100);
@@ -82,8 +119,7 @@ void DeployListElement::run()
         // lock is unnecessary
         lockFile.close();
         lockFile.remove();
-        this->setStatus(CLEStatus::SUCCESS, "DOWN");
-        downloaded();
+        emit filesReady();
         return;
     }
     connect(reply, &ApiReply::errorOccurred, this, &DeployListElement::onErrorOccured);
@@ -93,7 +129,6 @@ void DeployListElement::run()
 
 void DeployListElement::onErrorOccured(QNetworkReply::NetworkError e)
 {
-    qDebug() << e;
     this->setStatus(CLEStatus::FAIL, "NETWORK ERROR");
     file.close();
     file.remove();
@@ -107,91 +142,156 @@ void DeployListElement::onDownloadProgress(qint64 read, qint64 total)
     if (total == 0)
         return;
     QString percent = QString::number((read * 100) / total);
-    displayLabel->setText("[" + QString::number(read) + "/" + QString::number(total) + " (" + percent + "%)] " + display);
+    this->setStatus(CLEStatus::PENDING, QString::number(read) + "/" + QString::number(total) + " (" + percent + "%)");
     file.write(reply->qReply->readAll());
 }
 
 void DeployListElement::onFinished()
 {
-    qDebug() << "Finished " << reply->qReply->url();
-    this->setStatus(CLEStatus::SUCCESS, "DOWN");
     file.write(reply->qReply->readAll());
     file.close();
     lockFile.close();
     lockFile.remove();
 
-    downloaded();
+    emit filesReady();
 }
 
-void DeployListElement::downloaded()
+void DeployListElement::onFilesReady()
 {
     if (file.fileName().endsWith(".zip"))
     {
-        try
+        this->setStatus(CLEStatus::PENDING, "UNZIPPING");
+        watcher.disconnect(this);
+        connect(&watcher, &QFutureWatcher<int>::finished, this, &DeployListElement::onUnzipped);
+        QFuture<int> future = QtConcurrent::run(&unzip, cacheDir.toStdString());
+        watcher.setFuture(future);
+    }
+    else
+    {
+        this->setStatus(CLEStatus::PENDING, "SENDING");
+        watcher.disconnect(this);
+        connect(&watcher, &QFutureWatcher<int>::finished, this, [this]()
+                {
+            int status = watcher.result();
+            if (status == -1)
+            {
+                this->setStatus(CLEStatus::FAIL, "SSH ERROR");
+                emit done();
+                return;
+            }
+            this->setStatus(CLEStatus::SUCCESS, "DONE");
+            emit done(); });
+
+        fs::path src = cachePath.toStdString();
+        fs::path dest = (directory + "/" + cacheFilename).toStdString();
+        QFuture<int> future = QtConcurrent::run(&sendFile, src, dest, data["machine"].toString());
+        watcher.setFuture(future);
+    }
+}
+
+void DeployListElement::onUnzipped()
+{
+    int status = watcher.result();
+    if (status == -1)
+    {
+        this->setStatus(CLEStatus::FAIL, "UNZIP ERROR");
+        emit done();
+        return;
+    }
+    std::vector<fs::path> srcs;
+    std::vector<fs::path> dests;
+    for (const auto &entry : fs::recursive_directory_iterator(cacheDir.toStdString()))
+    {
+        if (entry.is_directory() || entry.path().filename() == "artifacts.zip")
+            continue;
+        std::string entryPath = entry.path().relative_path().generic_string();
+        entryPath = entryPath.substr(cacheDir.length() + 1);
+        std::string entryParentPath = entry.path().parent_path().relative_path().generic_string();
+        if (entryParentPath.length() == cacheDir.length())
+            entryParentPath = "";
+        else
+            entryParentPath = entryParentPath.substr(cacheDir.length() + 1);
+        srcs.push_back(entry.path());
+        dests.push_back(fs::path(directory.toStdString() + "/" + entryPath));
+    }
+    recursiveSendFile(srcs, dests, connection, 0);
+}
+
+void DeployListElement::showLastUpdate()
+{
+    if (!showingLastUpdate)
+    {
+        QString lastUpdate = data["last_update"].toString().isEmpty() ? "None" : data["last_update"].toString();
+        this->displayLabel->setText(lastUpdate);
+        this->setStatus(CLEStatus::DEFAULT, "LAST UPDATE");
+        showingLastUpdate = true;
+    }
+    else
+    {
+        this->displayLabel->setText(display);
+        this->setStatus(CLEStatus::DEFAULT, "");
+        showingLastUpdate = false;
+    }
+}
+
+void DeployListElement::recursiveSendFile(const std::vector<std::filesystem::path> &srcs, const std::vector<std::filesystem::path> &dests, SSHConnection *conn, size_t i)
+{
+    this->setStatus(CLEStatus::PENDING, QString::fromStdString("SENDING " + dests[i].generic_string()));
+    watcher.disconnect(this);
+    connect(&watcher, &QFutureWatcher<int>::finished, this, [this, srcs, dests, conn, i]()
+            {
+        int status = watcher.result();
+        if (status == -1)
         {
-            unzip();
-        }
-        catch (const ZipException &e)
-        {
-            this->setStatus(CLEStatus::FAIL, "ZIP ERROR");
-            file.remove();
+            this->setStatus(CLEStatus::FAIL, "SSH ERROR");
             emit done();
             return;
         }
-        for (const auto &entry : fs::recursive_directory_iterator(cacheDir.toStdString()))
+        if (i + 1 < srcs.size())
+            recursiveSendFile(srcs, dests, conn, i + 1);
+        else
         {
-            if (entry.is_directory() || entry.path().filename() == "artifacts.zip")
-                continue;
-            std::string entryPath = entry.path().relative_path().generic_string();
-            entryPath = entryPath.substr(cacheDir.length() + 1);
-            std::string entryParentPath = entry.path().parent_path().relative_path().generic_string();
-            qDebug() << entryPath;
-            qDebug() << entryParentPath;
-            qDebug() << directory;
-            qDebug() << "\n";
-            if (entryParentPath.length() == cacheDir.length())
-                entryParentPath = "";
-            else
-                entryParentPath = entryParentPath.substr(cacheDir.length() + 1);
-            if (connection)
-            {
-                sendFile(QString::fromStdString(entry.path()), directory + "/" + QString::fromStdString(entryPath));
-            }
-            else
-            {
-                try
-                {
-                    dir.mkpath(directory + "/" + QString::fromStdString(entryParentPath));
-                    fs::copy(entry.path(), fs::path(directory.toStdString() + "/" + entryPath), fs::copy_options::overwrite_existing);
-                }
-                catch (const fs::filesystem_error &e)
-                {
-                    this->setStatus(CLEStatus::FAIL, "FILESYSTEM ERROR");
-                    emit done();
-                    return;
-                }
-            }
+            this->setStatus(CLEStatus::SUCCESS, "DONE");
+            emit done();
+        } });
+
+    QFuture<int> future = QtConcurrent::run(&sendFile, srcs[i], dests[i], data["machine"].toString());
+    watcher.setFuture(future);
+}
+
+int sendFile(const fs::path &src, const fs::path &dest, const QString &machine)
+{
+    SSHConnection *conn = std::move(DataManager::getConnection(machine));
+    if (conn)
+    {
+        try
+        {
+            conn->sendFile(src.generic_string(), dest.generic_string());
+        }
+        catch (const SshError &e)
+        {
+            return -1;
         }
     }
     else
     {
-        if (connection)
+        try
         {
-            sendFile(cachePath, directory);
+            std::filesystem::create_directories(dest.parent_path());
+            fs::copy(src, dest, fs::copy_options::overwrite_existing);
         }
-        else
+        catch (const fs::filesystem_error &e)
         {
-            dir.mkpath(directory);
-            file.copy(directory + "/" + cacheFilename);
+            return -1;
         }
     }
-    this->setStatus(CLEStatus::SUCCESS, "DONE");
-    emit done();
+    delete conn;
+    return 0;
 }
 
-void DeployListElement::unzip()
+int unzip(const std::string &cacheDir)
 {
-    std::string archive = cacheDir.toStdString() + "/artifacts.zip";
+    std::string archive = cacheDir + "/artifacts.zip";
     struct zip *za;
     struct zip_file *zf;
     struct zip_stat sb;
@@ -202,28 +302,30 @@ void DeployListElement::unzip()
     long long sum;
 
     if ((za = zip_open(archive.c_str(), 0, &err)) == NULL)
-        throw ZipException();
+        return -1;
 
     for (i = 0; i < zip_get_num_entries(za, 0); i++)
     {
         if (zip_stat_index(za, i, 0, &sb) == 0)
         {
-            QString filePath = QString::fromStdString(cacheDir.toStdString()) + "/" + sb.name;
-            dir.mkpath(filePath.mid(0, filePath.lastIndexOf('/')));
+            std::string filePath = cacheDir + "/" + sb.name;
+            if (filePath.back() == '/')
+                continue;
+            fs::create_directories(filePath.substr(0, filePath.find_last_of('/')));
             zf = zip_fopen_index(za, i, 0);
             if (!zf)
-                throw ZipException();
+                return -1;
 
-            fd = open(filePath.toStdString().c_str(), O_RDWR | O_TRUNC | O_CREAT, 0644);
+            fd = open(filePath.c_str(), O_RDWR | O_TRUNC | O_CREAT, 0644);
             if (fd < 0)
-                throw ZipException();
+                return -1;
 
             sum = 0;
             while (sum != sb.size)
             {
                 len = zip_fread(zf, buf, 100);
                 if (len < 0)
-                    throw ZipException();
+                    return -1;
                 write(fd, buf, len);
                 sum += len;
             }
@@ -234,19 +336,6 @@ void DeployListElement::unzip()
     }
 
     if (zip_close(za) == -1)
-        throw ZipException();
-}
-
-void DeployListElement::sendFile(const QString &source, const QString &dest)
-{
-    try
-    {
-        connection->sendFile(source.toStdString(), dest.toStdString());
-    }
-    catch (const SshError &e)
-    {
-        this->setStatus(CLEStatus::FAIL, "SSH ERROR");
-        emit done();
-        return;
-    }
+        return -1;
+    return 0;
 }

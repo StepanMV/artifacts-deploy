@@ -21,8 +21,8 @@ public slots:
     void clear();
 
 protected slots:
-    void verifyAllButtonClicked();
-    void onDialogAccept(const QJsonObject &data);
+    virtual void onDialogAccept(const QJsonObject &data);
+    virtual void onDialogReject();
 
 protected:
 

@@ -41,6 +41,7 @@ void ComplexListElement::setStatus(CLEStatus status, const QString &message)
         displayLabel->setText("[" + message + "] " + text);
     else
         displayLabel->setText(text);
+    emit stateChanged(status, message);
 }
 
 const QJsonObject &ComplexListElement::getData()

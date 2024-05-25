@@ -22,25 +22,19 @@ DeployDialog::DeployDialog(QWidget *parent)
   branchCCB = new CoolerComboBox(ui->labelBranch, ui->comboBoxBranch, this);
   jobCCB = new CoolerComboBox(ui->labelJob, ui->comboBoxJob, this);
   machineCCB = new CoolerComboBox(ui->labelMachine, ui->comboBoxMachine, this);
-  directoryCCB = new CoolerComboBox(ui->labelDirectory, ui->comboBoxDirectory, this, true);
   connect(projectCCB, &CoolerComboBox::updated, this, &DeployDialog::projectSelected);
   connect(branchCCB, &CoolerComboBox::updated, this, &DeployDialog::branchSelected);
   connect(machineCCB, &CoolerComboBox::updated, this, &DeployDialog::machineSelected);
-  connect(directoryCCB, &CoolerComboBox::updated, this, &DeployDialog::directorySelected);
   connect(ui->buttonSelectDir, &QPushButton::clicked, this, &DeployDialog::pathSelectClicked);
-  connect(ui->checkBox, &QCheckBox::stateChanged, this, &DeployDialog::dirSaveChecked);
 }
 
 DeployDialog::~DeployDialog()
 {
   delete ui;
-  if (ssh)
-    delete ssh;
   delete projectCCB;
   delete branchCCB;
   delete jobCCB;
   delete machineCCB;
-  delete directoryCCB;
 }
 
 void DeployDialog::comboSetEnabled(bool enabled)
@@ -48,13 +42,6 @@ void DeployDialog::comboSetEnabled(bool enabled)
   ui->comboBoxProject->setEnabled(enabled);
   ui->comboBoxBranch->setEnabled(enabled);
   ui->comboBoxJob->setEnabled(enabled);
-}
-
-void DeployDialog::localhostSetEnabled(bool enabled)
-{
-  ui->comboBoxDirectory->setEnabled(!enabled);
-  ui->checkBox->setEnabled(!enabled);
-  ui->buttonSelectDir->setEnabled(enabled);
 }
 
 void DeployDialog::init()
@@ -96,6 +83,10 @@ void DeployDialog::branchSelected(const QString &newText)
             comboSetEnabled(true);
             jobCCB->updateItems(jobs); // triggers shouldUpdate()
             reply->deleteLater(); });
+  connect(reply, &ApiReply::commitsReady, reply, [this, reply](QList<QString> &commits)
+          {
+    jobCommits = commits;
+    reply->deleteLater(); });
   connect(reply, &ApiReply::errorOccurred, reply, [this, reply](QNetworkReply::NetworkError e)
           {
     branchCCB->onError();
@@ -105,69 +96,8 @@ void DeployDialog::branchSelected(const QString &newText)
 
 void DeployDialog::machineSelected(const QString &newText)
 {
-  directoryCCB->clearItems();
-  if (newText == "localhost")
-  {
-    localhostSetEnabled(true);
-    directoryCCB->clear();
-  }
-  else
-  {
-    localhostSetEnabled(false);
-    try
-    {
-      this->ssh = DataManager::getConnection(newText);
-    }
-    catch (const SshError &e)
-    {
-      machineCCB->onError();
-    }
-  }
-}
-
-// should be called on every change..?
-void DeployDialog::directorySelected(const QString &newText)
-{
-  if (machineCCB->getSelectedItem() == "localhost")
-    return;
-  if (!newText.endsWith("/") || directoryCCB->getSelectedItem() == newText)
-    return;
-
-  // if ends with a slash -> check response with this exact directory and set
-  QString responseMain;
-  try
-  {
-    responseMain = ssh->sendCommand("ls -d " + newText.toStdString());
-  }
-  catch (const SshError &e)
-  {
-    directoryCCB->onError();
-    return;
-  }
-
-  // failure (selected=none, color=red), return
-  if (!responseMain.split("\n").value(0).startsWith("/"))
-  {
-    directoryCCB->onError();
-    return;
-  }
-  QString responseExtra;
-  try
-  {
-    responseExtra = ssh->sendCommand("ls -d " + newText.toStdString() + "*/ " + newText.toStdString() + ".*/");
-  }
-  catch (const SshError &e)
-  {
-    directoryCCB->onError();
-    return;
-  }
-  QList<QString> items = responseMain.split("\n") + responseExtra.split("\n");
-  for (size_t i = 0; i < items.size(); i++)
-    if (!items[i].startsWith("/") || items[i] == "")
-      items.removeAt(i--);
-  // update without triggering shouldUpdate()
-  directoryCCB->updateItems(items, false);
-  directoryCCB->setSelectedItem(newText);
+  ui->lineEditDirectory->setEnabled(newText != "localhost");
+  ui->buttonSelectDir->setEnabled(newText == "localhost");
 }
 
 void DeployDialog::pathSelectClicked()
@@ -175,19 +105,7 @@ void DeployDialog::pathSelectClicked()
   QString path = QFileDialog::getExistingDirectory(this, tr("Select directory"));
   if (path.isEmpty())
     return;
-  directoryCCB->setSelectedItem(path);
-}
-
-void DeployDialog::dirSaveChecked(bool state)
-{
-  QString currentText = directoryCCB->getCurrentText();
-  if (state && !currentText.isEmpty())
-    directoryCCB->setSelectedItem(currentText); // doesn't trigger shouldUpdate()
-  else if (!state)
-  {
-    directoryCCB->clear();
-    ui->comboBoxDirectory->setEditText(currentText); // triggers shouldUpdate()
-  }
+  ui->lineEditDirectory->setText(path);
 }
 
 QJsonObject DeployDialog::getData()
@@ -200,12 +118,10 @@ QJsonObject DeployDialog::getData()
   temp["job"] = jobCCB->getSelectedItem();
   temp["file"] = ui->lineEditFile->text();
   temp["machine"] = machineCCB->getSelectedItem();
-  temp["directory"] = directoryCCB->getSelectedItem();
+  temp["directory"] = ui->lineEditDirectory->text();
+  temp["commit"] = jobCommits[jobCCB->getItems().indexOf(jobCCB->getSelectedItem())];
   QString tempStr = temp["directory"].toString();
   temp["directory"] = tempStr.endsWith("/") ? tempStr.left(tempStr.length() - 1) : tempStr;
-  temp["createDir"] = ui->checkBox->isChecked();
-  temp["cachePath"] = "cache/" + temp["project"].toString() + "_" + temp["job"].toString() + "/" +
-                      (temp["file"].toString().isEmpty() ? "artifacts.zip" : temp["file"].toString());
   if (!temp["name"].toString().isEmpty())
     temp["display"] = temp["name"].toString();
   else
@@ -232,8 +148,7 @@ void DeployDialog::clearFileds()
   branchCCB->clear();
   jobCCB->clear();
   machineCCB->clear();
-  directoryCCB->clear();
-  ui->checkBox->setChecked(false);
+  ui->lineEditDirectory->clear();
   ui->lineEditFile->clear();
   ui->lineEditName->clear();
 }
@@ -251,13 +166,11 @@ void DeployDialog::show(const QJsonObject &data)
   jobCCB->setSelectedItem(data["job"].toString());
   ui->lineEditFile->setText(data["file"].toString());
   ui->lineEditName->setText(data["name"].toString());
+  ui->lineEditDirectory->setText(data["directory"].toString());
 
   // using direct input to trigger shouldUpdate() slot and request items (should use cache)
   ui->comboBoxProject->setEditText(data["projectName"].toString());
 
   ui->comboBoxMachine->setEditText(data["machine"].toString()); // and again
-  directoryCCB->setSelectedItem(data["directory"].toString());
-
-  ui->checkBox->setChecked(data["createDir"].toBool());
   QDialog::show();
 }

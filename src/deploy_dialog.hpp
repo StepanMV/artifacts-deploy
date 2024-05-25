@@ -34,23 +34,19 @@ private slots:
   void projectSelected(const QString &newText);
   void branchSelected(const QString &newText);
   void machineSelected(const QString &newText);
-  void directorySelected(const QString &newText);
 
   void pathSelectClicked();
-  void dirSaveChecked(bool state);
 
 private:
   void comboSetEnabled(bool enabled);
-  void localhostSetEnabled(bool enabled);
 
   ApiHandler api;
   Ui::DeployDialog *ui;
+  QList<QString> jobCommits; // idk where else to put it
   CoolerComboBox *projectCCB;
   CoolerComboBox *branchCCB;
   CoolerComboBox *jobCCB;
   CoolerComboBox *machineCCB;
-  CoolerComboBox *directoryCCB;
-  SSHConnection *ssh = nullptr;
 };
 
 #endif // DEPLOY_DIALOG_HPP

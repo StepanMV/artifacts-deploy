@@ -7,7 +7,7 @@ class ApiReply : public QObject
     Q_OBJECT
 public:
     ApiReply(QNetworkReply *qReply, QObject *parent = nullptr);
-    ~ApiReply();
+    ~ApiReply() = default;
 
     QNetworkReply * const qReply;
 
@@ -17,6 +17,7 @@ signals:
     
     void branchesReady(QList<QString>& branches);
     void jobsReady(QList<QString>& jobs);
+    void commitsReady(QList<QString>& commits);
 
     void pipelinesCheck();
 };

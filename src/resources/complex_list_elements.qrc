@@ -1,7 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>../ui/deploy_list_element.ui</file>
+        <file>../ui/deploy_list_element_spaced.ui</file>
         <file>../ui/ssh_list_element.ui</file>
         <file>../ui/token_list_element.ui</file>
+        <file>../ui/deploy_list_group.ui</file>
     </qresource>
 </RCC>

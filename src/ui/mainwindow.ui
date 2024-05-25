@@ -31,10 +31,10 @@
         <item>
          <spacer name="verticalSpacer_9">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -59,7 +59,14 @@
              <item>
               <widget class="QPushButton" name="deployAddButton">
                <property name="text">
-                <string>Add</string>
+                <string>Add element</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="deployAddGroupButton">
+               <property name="text">
+                <string>Add group</string>
                </property>
               </widget>
              </item>
@@ -67,13 +74,6 @@
               <widget class="QPushButton" name="deployClearButton">
                <property name="text">
                 <string>Clear</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="deployVerifyAllButton">
-               <property name="text">
-                <string>Verify all</string>
                </property>
               </widget>
              </item>
@@ -87,7 +87,7 @@
              <item>
               <spacer name="horizontalSpacer_6">
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -129,10 +129,10 @@
         <item>
          <spacer name="verticalSpacer_8">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -154,10 +154,10 @@
           <item>
            <spacer name="horizontalSpacer_8">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
+             <enum>QSizePolicy::Policy::Expanding</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -190,10 +190,10 @@
         <item>
          <spacer name="verticalSpacer_3">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -207,6 +207,12 @@
          <layout class="QHBoxLayout" name="apiHLayout">
           <item>
            <widget class="QLabel" name="apiLabel">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -225,15 +231,34 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="apiButtonUpdate">
+            <property name="maximumSize">
+             <size>
+              <width>35</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>🗘</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="userTokenHLayout">
           <property name="sizeConstraint">
-           <enum>QLayout::SetDefaultConstraint</enum>
+           <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
           </property>
           <item>
            <widget class="QLabel" name="userTokenLabel">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -258,6 +283,19 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="userTokenButtonUpdate">
+            <property name="maximumSize">
+             <size>
+              <width>35</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>🗘</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
@@ -266,7 +304,7 @@
            <item>
             <widget class="QLabel" name="tokenLabel">
              <property name="focusPolicy">
-              <enum>Qt::StrongFocus</enum>
+              <enum>Qt::FocusPolicy::StrongFocus</enum>
              </property>
              <property name="text">
               <string>Repository tokens</string>
@@ -290,16 +328,9 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="tokenVerifyAllButton">
-               <property name="text">
-                <string>Verify all</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <spacer name="horizontalSpacer_3">
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -321,8 +352,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>774</width>
-                <height>104</height>
+                <width>82</width>
+                <height>16</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_11"/>
@@ -338,7 +369,7 @@
            <item>
             <widget class="QLabel" name="sshLabel">
              <property name="focusPolicy">
-              <enum>Qt::StrongFocus</enum>
+              <enum>Qt::FocusPolicy::StrongFocus</enum>
              </property>
              <property name="text">
               <string>SSH access info</string>
@@ -362,16 +393,9 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="sshVerifyAllButton">
-               <property name="text">
-                <string>Verify all</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <spacer name="horizontalSpacer_2">
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -393,8 +417,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>774</width>
-                <height>103</height>
+                <width>82</width>
+                <height>16</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_10"/>
@@ -407,10 +431,10 @@
         <item>
          <spacer name="verticalSpacer_4">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -432,10 +456,10 @@
           <item>
            <spacer name="horizontalSpacer">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
+             <enum>QSizePolicy::Policy::Expanding</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -460,7 +484,6 @@
   </widget>
  </widget>
  <tabstops>
-  <tabstop>tokenVerifyAllButton</tabstop>
   <tabstop>apiLineEdit</tabstop>
   <tabstop>tokenLabel</tabstop>
   <tabstop>tokenAddButton</tabstop>
@@ -469,10 +492,8 @@
   <tabstop>sshLabel</tabstop>
   <tabstop>sshAddButton</tabstop>
   <tabstop>sshClearButton</tabstop>
-  <tabstop>sshVerifyAllButton</tabstop>
   <tabstop>deployAddButton</tabstop>
   <tabstop>deployClearButton</tabstop>
-  <tabstop>deployVerifyAllButton</tabstop>
   <tabstop>deployRunAllButton</tabstop>
   <tabstop>deployScrollArea</tabstop>
   <tabstop>saveButton</tabstop>

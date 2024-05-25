@@ -2,6 +2,7 @@
 #define SSHCONNECTION_HPP
 
 #include <libssh/libssh.h>
+#include <libssh/sftp.h>
 #include <QByteArray>
 #include <QThread>
 #include <QVector>
@@ -43,18 +44,20 @@ public:
 class SSHConnection
 {
 public:
-    SSHConnection(const std::string& ip, size_t port, const std::string& user, const std::string& keyPath, const std::string& keyPass);
-    SSHConnection(const std::string& ip, size_t port, const std::string& user, const std::string& password);
+    SSHConnection(const std::string &ip, size_t port, const std::string &user, const std::string &keyPath, const std::string &keyPass);
+    SSHConnection(const std::string &ip, size_t port, const std::string &user, const std::string &password);
     ~SSHConnection();
-    QString sendCommand(const std::string& command);
-    void sendFile(const std::string& source, const std::string& dest);
+    QString sendCommand(const std::string &command);
+    void sendFile(const std::string &source, const std::string &dest);
 
 private:
-    ssh_session                                                            connect();
-    SSHConnection(const std::string& ip, size_t port, const std::string& user);
+    ssh_session connect();
+    sftp_session connectSftp();
+    SSHConnection(const std::string &ip, size_t port, const std::string &user);
     int verifyHost(ssh_session session);
 
     ssh_session session = nullptr;
+    sftp_session sftpSession = nullptr;
 
     std::string ip;
     size_t port;

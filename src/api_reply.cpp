@@ -4,8 +4,3 @@ ApiReply::ApiReply(QNetworkReply *qReply, QObject *parent) : QObject(parent), qR
 {
     qReply->setParent(this);
 }
-
-ApiReply::~ApiReply()
-{
-    qDebug() << "Destructor: " << qReply->url() << "\n";
-}
