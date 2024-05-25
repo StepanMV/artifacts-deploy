@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, archlinux-latest]
+        os: [ubuntu-latest, windows-latest]
         build_type: [Release]
         qt_version_major: [5, 6]
         c_compiler: [gcc, cl]
@@ -34,20 +34,10 @@ jobs:
             c_compiler: gcc
             cpp_compiler: g++
             qt_version_major: 6
-          - os: archlinux-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            qt_version_major: 5
-          - os: archlinux-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            qt_version_major: 6
         exclude:
           - os: windows-latest
             c_compiler: gcc
           - os: ubuntu-latest
-            c_compiler: cl
-          - os: archlinux-latest
             c_compiler: cl
 
     steps:
@@ -74,17 +64,6 @@ jobs:
           sudo apt-get install -y qt6-base-dev qt6-tools-dev qt6-base-dev-tools
         fi
         sudo apt-get install -y libssh-dev libzip-dev zipcmp zipmerge ziptool
-
-    - name: Install dependencies on Arch Linux
-      if: matrix.os == 'archlinux-latest'
-      run: |
-        sudo pacman -Syu --noconfirm
-        if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
-          sudo pacman -S --noconfirm qt5-base qt5-tools
-        elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
-          sudo pacman -S --noconfirm qt6-base qt6-tools
-        fi
-        sudo pacman -S --noconfirm libssh libzip
 
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
@@ -116,7 +95,6 @@ jobs:
         
     - name: Configure CMake
       run: >
-        echo ${{ env.PATH }}
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
@@ -130,6 +108,8 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.3.3
       with:
-        name: artifacts-deploy-${{ matrix.os }}-${{ steps.strings.outputs.qt-version }}
-        path: ${{ steps.strings.outputs.build-output-dir }}/artifacts-deploy
+        name:
+          artifacts-deploy-${{ matrix.os }}-${{ steps.strings.outputs.qt-version }}
+        path: 
+          ${{ steps.strings.outputs.build-output-dir }}/artifacts-deploy
         if-no-files-found: error
