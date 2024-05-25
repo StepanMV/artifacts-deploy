@@ -54,10 +54,11 @@ jobs:
       run: |
         sudo apt-get update
         if [[ "${{ matrix.qt_version }}" == "qt5" ]]; then
-          sudo apt-get install -y qtbase5-dev
+          sudo apt-get install -y qt5-default
         elif [[ "${{ matrix.qt_version }}" == "qt6" ]]; then
-          sudo apt-get install -y qt6-base-dev
+          sudo apt-get install -y qt6-default
         fi
+        sudo apt-get install libssh libzip
 
     - name: Install Python on Windows
       if: matrix.os == 'windows-latest'
@@ -73,6 +74,8 @@ jobs:
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
       run: |
+        aqt list-qt windows desktop --arch 5.15.13
+        aqt list-qt windows desktop --arch 6.7.0
         if [[ "${{ matrix.qt_version }}" == "qt5" ]]; then
           aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
         elif [[ "${{ matrix.qt_version }}" == "qt6" ]]; then
