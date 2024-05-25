@@ -15,25 +15,24 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
-        c_compiler: [gcc, cl]
-        qt_version: [5, 6]
+        qt_version_major: [5, 6]
         include:
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
-            qt_version: 5
-          # - os: windows-latest
-          #   c_compiler: cl
-          #   cpp_compiler: cl
-          #   qt_version: 6
+            qt_version_major: 5
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+            qt_version_major: 6
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
-            qt_version: 5
-          # - os: ubuntu-latest
-          #   c_compiler: gcc
-          #   cpp_compiler: g++
-          #   qt_version: 6
+            qt_version_major: 5
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+            qt_version_major: 6
         exclude:
           - os: windows-latest
             c_compiler: gcc
@@ -48,42 +47,45 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
+          echo "qt-version=5.15.2" >> "$GITHUB_OUTPUT"
+        elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
+          echo "qt-version=6.2.0" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Install dependencies on Ubuntu
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        # if [[ "${{ matrix.qt_version }}" == "5" ]]; then
-        #   sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qttools5-dev
-        # elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
-        #   sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
-        # fi
-        sudo apt-get install libssh-dev zipmerge zipcmp libzip-dev
+        if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
+          sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qttools5-dev
+        elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
+          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
+        fi
+        sudo apt-get install -y libssh-dev zipmerge zipcmp libzip-dev
 
-    - name: Install Qt
+    - name: Install Qt on Windows
+      if: matrix.os == 'windows-latest'
       uses: jurplel/install-qt-action@v3
       with:
-        version: '5.15.2'
+        version: ${{ steps.strings.outputs.qt-version }}
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
         dir: '${{ github.workspace }}/Qt/'
-        install-deps: 'true'
-        modules: 'qtcharts qtwebengine'
-        archives: 'qtbase qtsvg'
+        modules: 'qtcharts qtwebengine qtuitools'
+        tools: 'true'
         cache: 'false'
-        cache-key-prefix: 'install-qt-action'
         setup-python: 'true'
         set-env: 'true'
-        tools-only: 'false'
-
+        
     - name: Configure CMake
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DQT_VERSION_MAJOR=${{ matrix.qt_version }}
+        -Dqt_version_major_MAJOR=${{ matrix.qt_version_major }}
         -S ${{ github.workspace }}
 
     - name: Build
