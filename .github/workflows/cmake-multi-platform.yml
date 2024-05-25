@@ -22,18 +22,18 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
             qt_version: 5
-          - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
-            qt_version: 6
+          # - os: windows-latest
+          #   c_compiler: cl
+          #   cpp_compiler: cl
+          #   qt_version: 6
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
             qt_version: 5
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            qt_version: 6
+          # - os: ubuntu-latest
+          #   c_compiler: gcc
+          #   cpp_compiler: g++
+          #   qt_version: 6
         exclude:
           - os: windows-latest
             c_compiler: gcc
@@ -53,37 +53,29 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        if [[ "${{ matrix.qt_version }}" == "5" ]]; then
-          sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qttools5-dev
-        elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
-          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
-        fi
-        sudo apt-get install libssh-dev zipcmp libzip-dev
+        # if [[ "${{ matrix.qt_version }}" == "5" ]]; then
+        #   sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qttools5-dev
+        # elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
+        #   sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-dev qt6-base-dev qt6-tools-dev qt6-base-dev-tools
+        # fi
+        sudo apt-get install libssh-dev zipmerge zipcmp libzip-dev
 
-    - name: Install Python on Windows
-      if: matrix.os == 'windows-latest'
-      uses: actions/setup-python@v4
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
       with:
-        python-version: '3.x'
-
-    - name: Install aqtinstall on Windows
-      if: matrix.os == 'windows-latest'
-      run: |
-        python -m pip install aqtinstall
-
-    - name: Install Qt on Windows
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      run: |
-        if [[ "${{ matrix.qt_version }}" == "5" ]]; then
-          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
-        elif [[ "${{ matrix.qt_version }}" == "6" ]]; then
-          aqt install-qt windows desktop 6.2.4 win64_msvc2019_64
-        fi
-        ls ${{ runner.temp }}/Qt
-      env:
-        QTDIR: ${{ runner.temp }}/Qt
-        PATH: ${{ runner.temp }}/Qt/Qt${{ matrix.qt_version }}/bin:${{ env.PATH }}
+        version: '5.15.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        dir: '${{ github.workspace }}/Qt/'
+        install-deps: 'true'
+        modules: 'qtcharts qtwebengine'
+        archives: 'qtbase qtsvg'
+        cache: 'false'
+        cache-key-prefix: 'install-qt-action'
+        setup-python: 'true'
+        set-env: 'true'
+        tools-only: 'false'
 
     - name: Configure CMake
       run: >
