@@ -86,12 +86,9 @@ jobs:
         .\bootstrap-vcpkg.bat
         .\vcpkg.exe install libssh
         .\vcpkg.exe install libzip
-        ls ${{ github.workspace }}\vcpkg
-        ls ${{ github.workspace }}\vcpkg\installed
-        ls ${{ github.workspace }}\vcpkg\installed\x64-windows
-        echo "${{ github.workspace }}\vcpkg\installed\bin" >> $GITHUB_PATH
-        echo "${{ github.workspace }}\vcpkg\installed\include" >> $GITHUB_PATH
-        echo "${{ github.workspace }}\vcpkg\installed\lib" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\vcpkg\installed\x64-windows\bin" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\vcpkg\installed\x64-windows\include" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\vcpkg\installed\x64-windows\lib" >> $GITHUB_PATH
         
     - name: Configure CMake
       run: >
