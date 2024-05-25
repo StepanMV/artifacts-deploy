@@ -53,6 +53,11 @@ jobs:
         elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
           echo "qt-version=6.2.0" >> "$GITHUB_OUTPUT"
         fi
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          echo "extension=.exe" >> "$GITHUB_OUTPUT"
+        elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          echo "extension=''" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Install dependencies on Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -84,8 +89,8 @@ jobs:
         git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
         .\bootstrap-vcpkg.bat
-        .\vcpkg\vcpkg.exe install libssh
-        .\vcpkg\vcpkg.exe install libzip
+        .\vcpkg.exe install libssh
+        .\vcpkg.exe install libzip
         echo "${{ github.workspace }}\vcpkg\installed\bin" >> $GITHUB_PATH
         echo "${{ github.workspace }}\vcpkg\installed\include" >> $GITHUB_PATH
         echo "${{ github.workspace }}\vcpkg\installed\lib" >> $GITHUB_PATH
@@ -105,6 +110,8 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.3.3
       with:
+        name:
+          artifacts-deploy-${{ steps.strings.outputs.qt-version }}-${{ matrix.os }}${{ steps.strings.outputs.extension }}
         path: 
           ${{ steps.strings.outputs.build-output-dir }}/artifacts-deploy
         if-no-files-found: error
