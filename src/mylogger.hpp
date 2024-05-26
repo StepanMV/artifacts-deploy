@@ -7,7 +7,7 @@ enum MyLogType
 {
     INFO,
     WARNING,
-    ERROR
+    ERR
 };
 
 

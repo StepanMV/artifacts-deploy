@@ -26,7 +26,7 @@ void MyLogger::log(const QString &message, MyLogType type)
         case WARNING:
             stream << "[WARNING]: ";
             break;
-        case ERROR:
+        case ERR:
             stream << "[ERROR]: ";
             break;
         }
