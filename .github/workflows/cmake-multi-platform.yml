@@ -52,12 +52,6 @@ jobs:
         fi
         sudo apt-get install -y libssh-dev libzip-dev zipcmp zipmerge ziptool
 
-    - name: Install MinGW on Windows
-      uses: egor-tensin/setup-mingw@v2
-      with:
-        platform: x64
-        static: 1
-
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
       uses: jurplel/install-qt-action@v3
@@ -85,6 +79,7 @@ jobs:
         echo "${{ github.workspace }}/vcpkg/installed/x64-windows/lib" >> $GITHUB_PATH
         
     - name: Configure CMake
+      shell: bash
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=g++
@@ -94,6 +89,7 @@ jobs:
         -S ${{ github.workspace }}
 
     - name: Build
+      shell: bash
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
       
     - name: Upload a Build Artifact
