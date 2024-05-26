@@ -50,20 +50,24 @@ else()
 endif()
 
 
-# Conditionally link static libraries for Windows
-if(WIN32)
-    # Include directories for header files
-    message(STATUS "Using Windows libraries")
+if (NOT WIN32)
+    target_link_libraries(artifacts-deploy PRIVATE
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Network
+        Qt${QT_VERSION_MAJOR}::UiTools
+        ssh
+        zip
+    )
+else()
     include_directories(win-libs/include)
-    # Specify the directories containing the static libraries
-    link_directories(win-libs/bin)
+    target_link_libraries(artifacts-deploy PRIVATE
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Network
+        Qt${QT_VERSION_MAJOR}::UiTools
+        ${CMAKE_SOURCE_DIR}/win-libs/lib/ssh.lib
+        ${CMAKE_SOURCE_DIR}/win-libs/lib/zip.lib
+    )
 endif()
-
-target_link_libraries(artifacts-deploy PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Network
-    Qt${QT_VERSION_MAJOR}::UiTools
-    ssh zip)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
