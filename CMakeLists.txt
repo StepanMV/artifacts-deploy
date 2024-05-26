@@ -24,6 +24,7 @@ else()
 endif()
 
 if (NOT WIN32)
+    message(STATUS "Using system libraries")
     find_package(libssh REQUIRED)
     find_package(libzip REQUIRED)
 endif()
@@ -52,6 +53,7 @@ endif()
 # Conditionally link static libraries for Windows
 if(WIN32)
     # Include directories for header files
+    message(STATUS "Using Windows libraries")
     include_directories(win-libs/include)
     # Specify the directories containing the static libraries
     link_directories(win-libs/lib)
