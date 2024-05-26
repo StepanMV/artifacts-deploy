@@ -33,7 +33,6 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         echo
         if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
           echo "qt-version=5.15.2" >> "$GITHUB_OUTPUT"
@@ -69,11 +68,11 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: bash
       run: |
-        git clone https://github.com/microsoft/vcpkg.git
-        cd vcpkg
-        ./bootstrap-vcpkg.bat
-        ./vcpkg.exe install libssh
-        ./vcpkg.exe install libzip
+        # git clone https://github.com/microsoft/vcpkg.git
+        # cd vcpkg
+        # ./bootstrap-vcpkg.bat
+        # ./vcpkg.exe install libssh
+        # ./vcpkg.exe install libzip
         echo "${{ github.workspace }}/vcpkg/installed/x64-windows/bin" >> $GITHUB_PATH
         echo "${{ github.workspace }}/vcpkg/installed/x64-windows/include" >> $GITHUB_PATH
         echo "${{ github.workspace }}/vcpkg/installed/x64-windows/lib" >> $GITHUB_PATH
@@ -81,16 +80,16 @@ jobs:
     - name: Configure CMake
       shell: bash
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        cmake -B build
         -DCMAKE_CXX_COMPILER=g++
         -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DQT_VERSION_MAJOR=${{ matrix.qt_version_major }}
-        -S ${{ github.workspace }}
+        -S .
 
     - name: Build
       shell: bash
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: cmake --build build --config ${{ matrix.build_type }}
       
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.3.3
