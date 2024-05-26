@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/resource.h>
 #include <dirent.h>
 #include <limits.h>
 #include <unistd.h>
