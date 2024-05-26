@@ -13,42 +13,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, archlinux-latest]
+        os: [ubuntu-latest, windows-latest]
         build_type: [Release]
         qt_version_major: [5, 6]
-        c_compiler: [gcc, cl]
         include:
           - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
             qt_version_major: 5
           - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
             qt_version_major: 6
           - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
             qt_version_major: 5
           - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
             qt_version_major: 6
-          - os: archlinux-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            qt_version_major: 5
-          - os: archlinux-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            qt_version_major: 6
-        exclude:
-          - os: windows-latest
-            c_compiler: gcc
-          - os: ubuntu-latest
-            c_compiler: cl
-          - os: archlinux-latest
-            c_compiler: cl
 
     steps:
     - uses: actions/checkout@v4
@@ -58,6 +34,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo
         if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
           echo "qt-version=5.15.2" >> "$GITHUB_OUTPUT"
         elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
@@ -75,16 +52,10 @@ jobs:
         fi
         sudo apt-get install -y libssh-dev libzip-dev zipcmp zipmerge ziptool
 
-    - name: Install dependencies on Arch Linux
-      if: matrix.os == 'archlinux-latest'
-      run: |
-        sudo pacman -Syu --noconfirm
-        if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
-          sudo pacman -S --noconfirm qt5-base qt5-tools
-        elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
-          sudo pacman -S --noconfirm qt6-base qt6-tools
-        fi
-        sudo pacman -S --noconfirm libssh libzip
+    - name: Install MinGW on Windows
+      uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x64
 
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
@@ -93,7 +64,7 @@ jobs:
         version: ${{ steps.strings.outputs.qt-version }}
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_mingw81'
         dir: '${{ github.workspace }}/Qt/'
         cache: 'false'
         setup-python: 'true'
@@ -115,8 +86,8 @@ jobs:
     - name: Configure CMake
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DQT_VERSION_MAJOR=${{ matrix.qt_version_major }}
         -S ${{ github.workspace }}
