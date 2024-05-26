@@ -33,11 +33,15 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo
         if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
           echo "qt-version=5.15.2" >> "$GITHUB_OUTPUT"
         elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
           echo "qt-version=6.2.0" >> "$GITHUB_OUTPUT"
+        fi
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          echo 'generator="MinGW Makefiles"' >> "$GITHUB_OUTPUT"
+        elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          echo 'generator="Unix Makefiles"' >> "$GITHUB_OUTPUT"
         fi
 
     - name: Install dependencies on Ubuntu
@@ -85,7 +89,7 @@ jobs:
         -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DQT_VERSION_MAJOR=${{ matrix.qt_version_major }}
-        -G Ninja
+        -G ${{ steps.strings.outputs.generator }}
         -S .
 
     - name: Build
