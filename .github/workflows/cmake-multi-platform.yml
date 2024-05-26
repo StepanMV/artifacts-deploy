@@ -85,10 +85,11 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4.3.3
       with:
-        path: |
-          ${{ github.workspace }}\vcpkg\installed\x64-windows\bin\
-          ${{ github.workspace }}\vcpkg\installed\x64-windows\include\
-          ${{ github.workspace }}\vcpkg\installed\x64-windows\lib\
+        path: ${{ github.workspace }}\vcpkg\
+        # path: |
+        #   ${{ github.workspace }}\vcpkg\installed\x64-windows\bin\
+        #   ${{ github.workspace }}\vcpkg\installed\x64-windows\include\
+        #   ${{ github.workspace }}\vcpkg\installed\x64-windows\lib\
         if-no-files-found: error
         
     - name: Configure CMake
