@@ -56,8 +56,7 @@ if(WIN32)
     message(STATUS "Using Windows libraries")
     include_directories(win-libs/include)
     # Specify the directories containing the static libraries
-    find_library(zip zip PATHS win-libs/lib)
-    find_library(ssh ssh PATHS win-libs/lib)
+    link_directories(win-libs/bin)
 endif()
 
 target_link_libraries(artifacts-deploy PRIVATE
