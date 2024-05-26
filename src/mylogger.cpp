@@ -1,17 +1,17 @@
-#include "logger.hpp"
+#include "mylogger.hpp"
 
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
 
-QString Logger::logPath;
+QString MyLogger::logPath;
 
-void Logger::setLogPath(const QString &path)
+void MyLogger::setLogPath(const QString &path)
 {
     logPath = path;
 }
 
-void Logger::log(const QString &message, LogType type)
+void MyLogger::log(const QString &message, MyLogType type)
 {
     QFile file(logPath);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append))

@@ -5,7 +5,7 @@
 #include <QJsonArray>
 #include "deploy_list_element.hpp"
 #include "data_manager.hpp"
-#include "logger.hpp"
+#include "mylogger.hpp"
 
 DeployList::DeployList(QWidget *widget, ComplexDialog *dialog, QWidget *parent)
     : ComplexList("deploy", widget, dialog, parent)
@@ -120,7 +120,7 @@ void DeployList::addElementToGroup(DeployListGroup *group, const QJsonObject &da
                 QString message = "Deployed " + numFiles + " artifacts from ";
                 message += data["projectName"].toString() + "/" + data["branch"].toString() + "/" + data["job"].toString() + " (" + data["commit"].toString() + ")";
                 message += " to " + data["machine"].toString() + " (" + data["directory"].toString() + ")";
-                Logger::log(message);
+                MyLogger::log(message);
             });
     group->addElement(element);
 }

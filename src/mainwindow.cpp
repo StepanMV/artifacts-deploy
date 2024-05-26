@@ -8,7 +8,7 @@
 #include <QFileDialog>
 #include <QUiLoader>
 #include <QJsonArray>
-#include "logger.hpp"
+#include "mylogger.hpp"
 #include <filesystem>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(ui->userTokenButtonUpdate, &QPushButton::clicked, this, &MainWindow::updateUserToken);
   import("data.json");
   std::filesystem::create_directory("logs");
-  Logger::setLogPath("logs/log_" + QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss") + ".txt");
+  MyLogger::setLogPath("logs/log_" + QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss") + ".txt");
 }
 
 MainWindow::~MainWindow()

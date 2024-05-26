@@ -1,9 +1,9 @@
-#ifndef LOGGER_HPP
-#define LOGGER_HPP
+#ifndef MYLOGGER_HPP
+#define MYLOGGER_HPP
 
 #include <QString>
 
-enum LogType
+enum MyLogType
 {
     INFO,
     WARNING,
@@ -11,15 +11,15 @@ enum LogType
 };
 
 
-class Logger
+class MyLogger
 {
 public:
     static void setLogPath(const QString &path);
-    static void log(const QString &message, LogType type = INFO);
+    static void log(const QString &message, MyLogType type = INFO);
 
 private:
     static QString logPath;
 };
 
 
-#endif // LOGGER_HPP
+#endif // MYLOGGER_HPP
