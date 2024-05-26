@@ -64,8 +64,8 @@ else()
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::UiTools
-        ${CMAKE_SOURCE_DIR}/win-libs/lib/ssh.lib
-        ${CMAKE_SOURCE_DIR}/win-libs/lib/zip.lib
+        ${CMAKE_SOURCE_DIR}/win-libs/bin/ssh.dll
+        ${CMAKE_SOURCE_DIR}/win-libs/bin/zip.dll
     )
 endif()
 
