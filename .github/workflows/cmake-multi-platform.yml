@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, archlinux-latest]
         build_type: [Release]
         qt_version_major: [5, 6]
         c_compiler: [gcc, cl]
@@ -34,10 +34,20 @@ jobs:
             c_compiler: gcc
             cpp_compiler: g++
             qt_version_major: 6
+          - os: archlinux-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+            qt_version_major: 5
+          - os: archlinux-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+            qt_version_major: 6
         exclude:
           - os: windows-latest
             c_compiler: gcc
           - os: ubuntu-latest
+            c_compiler: cl
+          - os: archlinux-latest
             c_compiler: cl
 
     steps:
@@ -65,6 +75,17 @@ jobs:
         fi
         sudo apt-get install -y libssh-dev libzip-dev zipcmp zipmerge ziptool
 
+    - name: Install dependencies on Arch Linux
+      if: matrix.os == 'archlinux-latest'
+      run: |
+        sudo pacman -Syu --noconfirm
+        if [[ "${{ matrix.qt_version_major }}" == "5" ]]; then
+          sudo pacman -S --noconfirm qt5-base qt5-tools
+        elif [[ "${{ matrix.qt_version_major }}" == "6" ]]; then
+          sudo pacman -S --noconfirm qt6-base qt6-tools
+        fi
+        sudo pacman -S --noconfirm libssh libzip
+
     - name: Install Qt on Windows
       if: matrix.os == 'windows-latest'
       uses: jurplel/install-qt-action@v3
@@ -82,19 +103,14 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: bash
       run: |
-        echo ${{ env.PATH }}
-        ls abro23r232v
         git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
         ./bootstrap-vcpkg.bat
         ./vcpkg.exe install libssh
         ./vcpkg.exe install libzip
-      # env:
-      #   PATH: >
-      #     ${{ github.workspace }}/vcpkg/installed/x64-windows/bin:
-      #     ${{ github.workspace }}/vcpkg/installed/x64-windows/include:
-      #     ${{ github.workspace }}/vcpkg/installed/x64-windows/lib:
-      #     ${{ env.PATH }}
+        echo "${{ github.workspace }}/vcpkg/installed/x64-windows/bin" >> $GITHUB_PATH
+        echo "${{ github.workspace }}/vcpkg/installed/x64-windows/include" >> $GITHUB_PATH
+        echo "${{ github.workspace }}/vcpkg/installed/x64-windows/lib" >> $GITHUB_PATH
         
     - name: Configure CMake
       run: >
