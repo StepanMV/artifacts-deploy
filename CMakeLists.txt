@@ -23,8 +23,10 @@ else()
     message(FATAL_ERROR "Unsupported Qt version: ${QT_VERSION_MAJOR}. Please specify 5 or 6.")
 endif()
 
-find_package(libssh REQUIRED)
-find_package(libzip REQUIRED)
+if (NOT WIN32)
+    find_package(libssh REQUIRED)
+    find_package(libzip REQUIRED)
+endif()
 
 file(GLOB PROJECT_SOURCES src/*.cpp src/*.hpp src/ui/*.ui src/resources/*.qrc)
 
@@ -44,6 +46,15 @@ else()
         add_executable(artifacts-deploy ${PROJECT_SOURCES})
     endif()
 
+endif()
+
+
+# Conditionally link static libraries for Windows
+if(WIN32)
+    # Include directories for header files
+    include_directories(win-libs/include)
+    # Specify the directories containing the static libraries
+    link_directories(win-libs/lib)
 endif()
 
 target_link_libraries(artifacts-deploy PRIVATE
