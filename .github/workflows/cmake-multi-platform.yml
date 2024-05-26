@@ -85,6 +85,7 @@ jobs:
         -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DQT_VERSION_MAJOR=${{ matrix.qt_version_major }}
+        -G Ninja
         -S .
 
     - name: Build
@@ -97,5 +98,5 @@ jobs:
         name:
           artifacts-deploy-${{ matrix.os }}-${{ steps.strings.outputs.qt-version }}
         path: 
-          ${{ steps.strings.outputs.build-output-dir }}/artifacts-deploy
+          ${{ github.workspace }}/build/artifacts-deploy
         if-no-files-found: error
