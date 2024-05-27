@@ -114,7 +114,6 @@ void DeployList::addElementToGroup(DeployListGroup *group, const QJsonObject &da
                 QJsonObject data = element->getData();
                 data["last_update"] = QDateTime::currentDateTime().toString();
                 element->setData(data);
-                element->setStatus(CLEStatus::SUCCESS, "DONE");
                 DataManager::editCoolerList(prefix, elements.indexOf(element), data);
                 QString numFiles = data["file"].toString().isEmpty() ? "ALL" : QString::number(data["file"].toString().split(";").size());
                 QString message = "Deployed " + numFiles + " artifacts from ";
