@@ -13,7 +13,7 @@ public:
     virtual ~DeployList() = default;
     virtual void addElement(const QJsonObject &data) override;
     void addElementToGroup(DeployListGroup *group, const QJsonObject &data);
-    void addGroup();
+    void addGroup(const QString &name);
     void removeElement(ComplexListElement *element);
     virtual void init(const QJsonArray &data) override;
 

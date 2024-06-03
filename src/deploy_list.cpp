@@ -3,6 +3,7 @@
 #include <QLayout>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QLineEdit>
 #include "deploy_list_element.hpp"
 #include "data_manager.hpp"
 #include "mylogger.hpp"
@@ -18,7 +19,9 @@ DeployList::DeployList(QWidget *widget, ComplexDialog *dialog, QWidget *parent)
         connect(runAllButton, &QPushButton::clicked, this, &DeployList::runAllButtonClicked);
     if (addGroupButton)
     {
-        connect(addGroupButton, &QPushButton::clicked, this, &DeployList::addGroup);
+        connect(addGroupButton, &QPushButton::clicked, this, [this]() {
+            addGroup("");
+        });
     }
     scrollArea->layout()->addItem(spacer);
 }
@@ -124,7 +127,7 @@ void DeployList::addElementToGroup(DeployListGroup *group, const QJsonObject &da
     group->addElement(element);
 }
 
-void DeployList::addGroup()
+void DeployList::addGroup(const QString &name)
 {
     QJsonObject data = {
         {"isGroup", true},
@@ -132,12 +135,13 @@ void DeployList::addGroup()
         {"machine", ""},
         {"cachePath", ""},
         {"directory", ""},
-        {"display", ""},
+        {"display", name},
         {"file", ""},
         {"job", ""},
         {"project", ""},
         {"projectName", ""}};
     auto group = new DeployListGroup(":/ui/deploy_list_group.ui", data, this);
+    group->findChild<QLabel *>("nameLabel")->setText(name);
     DataManager::appendCoolerList(prefix, data);
     elements.append(group);
     groupHidden[group] = false;
@@ -160,6 +164,8 @@ void DeployList::addGroup()
             {
                 element->getWidget()->setVisible(!groupHidden[group]);
             } });
+    connect(group->getButton("renameButton"), &QPushButton::clicked, this, [group, this]
+            { DataManager::editCoolerList(prefix, elements.indexOf(group), group->getData()); });
 }
 
 void DeployList::removeElement(ComplexListElement *element)
@@ -179,7 +185,7 @@ void DeployList::init(const QJsonArray &data)
         QJsonObject obj = element.toObject();
         if (obj["isGroup"].toBool())
         {
-            addGroup();
+            addGroup(obj["display"].toString());
             group = dynamic_cast<DeployListGroup *>(elements.last());
         }
         else

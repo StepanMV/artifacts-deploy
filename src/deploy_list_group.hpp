@@ -17,9 +17,11 @@ public:
 
     void addElement(DeployListElement *element);
     QList<DeployListElement *> getElements();
+    bool editMode = false;
 
 protected slots:
     void runButtonClicked();
+    void renameButtonClicked();
 
 protected:
     QList<DeployListElement *> elements;

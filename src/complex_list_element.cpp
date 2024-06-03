@@ -14,7 +14,8 @@ ComplexListElement::ComplexListElement(const QString &filename, const QJsonObjec
     file.close();
 
     this->displayLabel = widget->findChild<QLabel *>("displayLabel");
-    displayLabel->setText(data["display"].toString());
+    if (displayLabel)
+        displayLabel->setText(data["display"].toString());
 }
 
 void ComplexListElement::setStatus(CLEStatus status, const QString &message)
